@@ -1,0 +1,70 @@
+
+html {
+  box-sizing: border-box;
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 10pt;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  position: flex;
+  margin: 0;
+  overflow: hidden;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+.CodeMirror, .fixed-width { 
+	font-family: consolas;
+	font-size: 14.25px;
+  height: 100%;
+}
+
+.cm-s-default span.shell-parse-error { color: #ff4f3f !important;  }
+.cm-s-default span.pager { color: #000 !important; }
+.cm-s-default span.shell-piped-stream { color: #000 !important; }
+.cm-s-default span.shell-prompt-debug { color: red; }
+
+/** I just don't like the default */
+.cm-s-default .CodeMirror-matchingbracket { outline:1px solid #ccc; background: #ddd; color:black !important; }
+
+.CodeMirror-hints {
+
+	letter-spacing: .25px;
+	/* font-weight: bold; */
+ 
+	font-family: consolas;
+	font-size: 11px;
+	
+}
+
+
+/* --- function tips ---------------------------------------------------- */
+
+.cmjs-shell-function-tip-container {
+	position: absolute;
+	z-index: 15;
+	overflow: visible;
+	opacity: 0;
+	transition: opacity .1s;
+}
+
+.cmjs-shell-function-tip {
+	position: relative;
+	transform: translateY(-100%);
+	bottom: .5em;
+	left: -1em;
+	border: 1px solid #ccc;
+	background: rgba( 255, 255, 200, .9 );
+	padding: 2px;
+	border-radius: 2px;
+	box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+}
+
+.cmjs-shell-function-tip-container.visible {
+	opacity: 1;
+}
