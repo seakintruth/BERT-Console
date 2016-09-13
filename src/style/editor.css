@@ -34,8 +34,12 @@
   opacity: 0;
 }
 
-.editor-tab-bar .tab-unsaved .tab-x:after {
-  content: 'o';
+.editor-tab-bar .tab-label:before {
+  content: "\00a0";
+}
+
+.editor-tab-bar .tab.dirty .tab-label:before {
+  content: '*';
 }
 
 .editor-tab-bar .tab.active .tab-x:after {
@@ -68,3 +72,32 @@
   right: 0px;
   background: red;
 }
+
+.editor-status-bar {
+  background: #eee;
+  width: 100%;
+  flex-direction: row;
+  display: flex;
+}
+
+.editor-status-bar > div {
+  width: 50%;
+  flex-grow: 1;
+  display: flex;
+  font-size: .9em;
+}
+
+.editor-status-bar > div > div {
+  padding: .25em 1em;
+}
+
+.editor-status-bar .right {
+  justify-content: flex-end;
+}
+
+.editor-status-bar .left {
+  justify-content: flex-start;
+}
+
+
+

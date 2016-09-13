@@ -24,6 +24,20 @@ body {
   height: 100%;
 }
 
+.CodeMirror-gutters {
+  background: inherit;
+  border-right-color: #fff;
+}
+
+.CodeMirror-linenumbers {
+  margin-right: 1.1em;
+  margin-left: .5em;
+}
+
+.CodeMirror-linenumber {
+  color: #57a7bf;
+}
+
 .cm-s-default span.shell-parse-error { color: #ff4f3f !important;  }
 .cm-s-default span.pager { color: #000 !important; }
 .cm-s-default span.shell-piped-stream { color: #000 !important; }

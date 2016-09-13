@@ -395,7 +395,7 @@ const PipeR = function () {
 
     client = net.createConnection({path: '\\\\.\\pipe\\test-bert-pipe'}, () => {
       //'connect' listener
-      console.log('connected to server!');
+      console.log('connected to service');
     });
     client.setEncoding('utf8');
     client.on("readable", on_read.bind(this, client, buffer, read_callback));

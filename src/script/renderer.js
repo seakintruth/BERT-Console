@@ -33,10 +33,26 @@ PubSub.subscribe( "settings-change", function( channel, update ){
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
   Settings.layout = {
-    splitter1: splitter1.size.slice(0),
+    // splitter1: splitter1.size.slice(0),
     splitter2: splitter2.size.slice(0)
   }
 });
+
+window.addEventListener( "keydown", function(e){
+  if( e.ctrlKey ){
+    if( e.code === "PageUp" ){
+      e.stopPropagation();
+      e.preventDefault();
+      editor.selectEditor({ delta: -1 });
+    }
+    else if( e.code === "PageDown" ){
+      e.stopPropagation();
+      e.preventDefault();
+      editor.selectEditor({ delta: 1 });
+    }
+    return;
+  }
+})
 
 var tip_function = function (text, pos) {
 
@@ -135,14 +151,29 @@ document.addEventListener("DOMContentLoaded", function(event) {
     splitter1: [20, 80], splitter2: [50, 50]
   };
 
+  /*
   splitter1 = new Splitter({ node: document.body, size: layout.splitter1 });
   splitter2 = new Splitter({ 
     node: splitter1.panes[1], 
     size: layout.splitter2,
-    direction: Splitter.prototype.Direction.VERTICAL 
+    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
   });
 
+  window.s1 = splitter1;
+  window.s2 = splitter2;
+
   let shellContainer = splitter2.panes[1];
+  */
+
+  splitter2 = new Splitter({ 
+    node: document.body, 
+    size: layout.splitter2,
+    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
+  });
+  window.s2 = splitter2;
+
+  let shellContainer = splitter2.panes[1];
+  
   shellContainer.classList.add( "shell" );
 
    // shell
@@ -192,6 +223,12 @@ document.addEventListener("DOMContentLoaded", function(event) {
   })
   R.init();
 
+  let updateLayout = function(dir){
+    console.info( "sld ->", dir );
+    splitter2.setDirection(dir);
+    Settings.layoutDirection = dir;
+  };
+
   const mainMenu = Menu.buildFromTemplate([
     {
       label: "File", 
@@ -219,7 +256,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         {
           label: 'Close',
           accelerator: 'CmdOrCtrl+W',
-          click: function(){}
+          click: function(){ editor.close(); }
         },
         {
           type: 'separator'
@@ -250,9 +287,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
         {
           role: 'paste'
         },
+        /*
         {
           role: 'pasteandmatchstyle'
         },
+        */
         {
           role: 'delete'
         },
@@ -264,6 +303,46 @@ document.addEventListener("DOMContentLoaded", function(event) {
     {
       label: "View",
       submenu: [
+       
+        {
+          label: 'Editor',
+          type: 'checkbox',
+          checked: true,
+          click: function( item ){
+            splitter2.setVisible( 0, item.checked );
+          }
+        },
+        {
+          label: 'R Shell',
+          type: 'checkbox',
+          checked: true,
+          click: function( item ){
+            splitter2.setVisible( 1, item.checked );
+          }
+        },
+         {
+          label: 'Layout',
+          submenu: [
+            {
+              label: 'Top and Bottom',
+              click( item, focusedWindow ){
+                updateLayout( Splitter.prototype.Direction.VERTICAL  );
+              },
+              type: 'radio',
+              checked: splitter2.vertical
+            },
+            {
+              label: 'Side by Side',
+              click( item, focusedWindow ){
+                updateLayout( Splitter.prototype.Direction.HORIZONTAL );
+              },
+              type: 'radio',
+              checked: !splitter2.vertical
+            }
+          ]
+        },
+        {type: 'separator'},
+
         {
           label: 'Reload',
           accelerator: 'CmdOrCtrl+R',

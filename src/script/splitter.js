@@ -11,6 +11,11 @@ let mouseCapture = undefined;
 
 const mousedown = function(event){
 
+  this.node.appendChild( mouseCapture );
+
+  let cachedPosition = this.node.style.position || "";
+  this.node.style.position = "relative";
+
   mouseCapture.classList.add("active");
   this.mouseTarget.classList.add( "active" );
 
@@ -62,12 +67,15 @@ const mousedown = function(event){
     if( originalSize[0] !== this.size[0] ) PubSub.publish( "splitter-resize", this );
 
     this.mouseTarget.classList.remove( "active" );
+    this.node.style.position = cachedPosition;
+    document.body.appendChild( mouseCapture );
 
   }.bind( this );
 
   mouseCapture.addEventListener( "mousemove", drag );
   mouseCapture.addEventListener( "mouseleave", finish );
   mouseCapture.addEventListener( "mouseup", finish );
+
 
 };
 
@@ -86,7 +94,62 @@ const Splitter = function( opts ){
     opts.node = document.querySelector( opts.node );
     if( !opts.node ) throw( "node required (invalid selector)" );
   }
+
   this.vertical = ( opts.direction === Splitter.prototype.Direction.VERTICAL );
+  this.visible = [ true, true ];
+
+  this.setVisible = function( pane, visible, force_one_visible ){
+
+    this.visible[pane] = visible;
+    if( force_one_visible && !visible ) this.visible[1-pane] = true;
+
+    if( this.visible[0] && this.visible[1] ){
+      this.panes[0].style.display = "";
+      this.panes[1].style.display = "";
+      this.splitter.style.display = "";
+    }
+    else if( this.visible[0] ){
+      this.panes[0].style.display = "";
+      this.panes[1].style.display = "none";
+      this.splitter.style.display = "none";
+    }
+    else if( this.visible[1] ){
+      this.panes[0].style.display = "none";
+      this.panes[1].style.display = "";
+      this.splitter.style.display = "none";
+    }
+    else {
+      this.panes[0].style.display = "none";
+      this.panes[1].style.display = "none";
+      this.splitter.style.display = "none";
+    }
+
+  };
+
+  /**
+   * set at runtime (so we can switch)
+   */
+  this.setDirection = function( dir ){
+
+    let vertical = (dir === Splitter.prototype.Direction.VERTICAL);
+    if( this.vertical === dir ) return;
+
+    opts.direction = dir;
+    this.vertical = vertical;
+    
+    if( this.vertical ) this.node.classList.add( "vertical" );
+    else this.node.classList.remove( "vertical" );
+    
+    let field = this.vertical ? "height" : "width";
+    let oldfield = !this.vertical ? "height" : "width";
+
+    this.panes[0].style[field] = this.size[0] + "%";
+    this.panes[1].style[field] = this.size[1] + "%";
+
+    this.panes[0].style[oldfield] = "";
+    this.panes[1].style[oldfield] = "";
+
+  };
 
   this.node = document.createElement( "div" );
   this.node.classList.add("split-panel");
