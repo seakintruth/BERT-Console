@@ -10,6 +10,7 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
 const NodeMap = require( './node-map.js' );
+const Menu = remote.Menu;
 
 const Editor = function(opts){
 
@@ -62,7 +63,7 @@ const Editor = function(opts){
   `, opts.node );
 
   let markDirty = function( dirty ){
-    active.dirty = true;
+    active.dirty = dirty;
     let index = 0;
     for( let i = 0; i< editors.length; i++ ){
       if( editors[i] === active ){
@@ -82,6 +83,7 @@ const Editor = function(opts){
   let updateStatus = function(){
     if( !active ) return;
     let mode = active.cm.getOption("mode") || "?";
+    mode = mode[0].toUpperCase() + mode.substr(1).toLowerCase();
     nodes.statusLanguage.textContent = `Language: ${mode}`;
     updatePosition();
   };
@@ -114,12 +116,32 @@ const Editor = function(opts){
   let closeEditor = function(index){
 
     let tab = tabs[index];
+    let editor = editors[index];
+
     let is_active = tab.classList.contains( "active" );
+
+    if( editor.dirty ){
+      let rslt = dialog.showMessageBox({
+        type: "question",
+        buttons: ["Save", "Don't Save", "Cancel"],
+        defaultId: 0,
+        noLink: true,
+        message: "Save changes to " +
+            (editor.path ? path.basename( editor.path ) : "Untitled") + "?"
+
+      });
+      switch( rslt ){
+      case 2: // cancel
+        return;
+      case 0: // save
+        save(editor);
+      }
+
+    }    
 
     tab.parentNode.removeChild( tab );
     tabs.splice( index, 1 );
 
-    let editor = editors[index];
     if( editor.path ){
       let tmp = Settings.openFiles.filter(function(file){
         return file !== editor.path;
@@ -139,6 +161,47 @@ const Editor = function(opts){
     }
 
   };
+
+  const tabContextMenu = Menu.buildFromTemplate([
+    { label: 'Close', 
+      click: function(){
+        closeEditor( tabContextMenu.targetIndex );
+      }
+    },
+    { label: 'Close Others',
+      click: function(){ 
+        for( let i = 0; i< tabContextMenu.targetIndex; i++ ) closeEditor( 0 );
+        while( editors.length > 1 ) closeEditor( 1 );
+      }
+    },
+    { label: 'Close All', 
+      click: function(){
+        let count = editors.length;
+        for( let i = 0; i< count; i++ ) closeEditor( 0 );
+      }
+    },
+  ]);
+
+  nodes.tabBar.addEventListener( "contextmenu", function( e ){
+    e.preventDefault();
+    e.stopPropagation();
+
+    if( e.target.className === "editor-tab-bar" ) return;
+    let target = e.target;
+    if( !target.classList.contains( "tab" )) target = target.parentNode;
+
+    let index = 0;
+    for( let i = 0; i< tabs.length; i++ ){
+      if( tabs[i] === target ){
+        index = i;
+        break;
+      }
+    }
+
+    tabContextMenu.targetIndex = index;
+    tabContextMenu.popup(remote.getCurrentWindow());
+
+  });
 
   nodes.tabBar.addEventListener( "click", function( e ){
 
@@ -293,6 +356,8 @@ const Editor = function(opts){
         // allowDropFileTypes: opts.drop_files,
         viewportMargin: 50
     });
+    options.cm.setOption( "theme", Settings.editor_theme || "default" );
+    options.cm.setOption("matchBrackets", true);
 
     options.cm.setOption("extraKeys", {
       Tab: function(cm) {
@@ -311,7 +376,25 @@ const Editor = function(opts){
 
   };
 
+  let updateRecentFiles = function(file){
+
+    // push onto recent files list.  remove other references to the 
+    // same file.  we do this so it will move to the top of the list
+    // when you open it again.
+
+    let recent = Settings.recent_files || [];
+    recent = recent.filter( function(test){ return test !== file });
+    recent.push( file );
+    Settings.recent_files = recent;
+
+    PubSub.publish( "menu-update" );
+
+  }
+
   let load = function( file, add, toll ){
+
+    if( !toll ) updateRecentFiles( file );
+
     return new Promise( function( resolve, reject ){
       fs.readFile( file, { encoding: 'utf8' }, function( err, contents ){
         if( err ){
@@ -331,16 +414,29 @@ const Editor = function(opts){
     });
   };
 
+  this.refresh = function(){
+
+    // switching to a new tab calls refresh, so we only need
+    // to refresh the active tab 
+
+    /*
+    editors.forEach( function( editor ){
+      editor.cm.refresh();
+    });
+    */
+    
+    active.cm.refresh();
+  }
+
   this.newFile = function(){
     addEditor();
   };
 
   this.close = function(){
 
-    let index = 0;
     for( let i = 0; i< editors.length; i++ ){
       if( editors[i] === active ){
-        closeEditor( index );
+        closeEditor( i );
         return;
       }
     }
@@ -368,19 +464,32 @@ const Editor = function(opts){
 
   };
 
-  this.save = function(){
-    if( !active ) return;
-    if( !active.path ) return this.saveAs();
+  let save = function( editor ){
+
+    if( !editor ){
+      if( !active ) return;
+      editor = active;
+    }
+
+    if( !editor.path ) return saveAs(editor);
     else {
-      let contents = active.cm.getValue();
-      fs.writeFile( active.path, contents, { encoding: "utf8" }, function(err){
+      let contents = editor.cm.getValue();
+      fs.writeFile( editor.path, contents, { encoding: "utf8" }, function(err){
         if( err ) PubSub.publish( "file-save-error", err );
         else markDirty(false);
       })
     }
   };
 
-  this.saveAs = function(){
+  this.updateTheme = function(){
+    editors.forEach( function( editor ){
+      editor.cm.setOption( "theme", Settings.editor_theme || "default" );
+    })
+  };
+
+  let saveAs = function(editor){
+
+    if(!editor) editor = active;
 
     let rslt = dialog.showSaveDialog({
       defaultPath: Settings.openPath,
@@ -390,19 +499,20 @@ const Editor = function(opts){
       ],
       properties: ['openFile', 'NO_multiSelections']});
     
-    if( !rslt ) return;
-    active.path = rslt;
+    if( !rslt ) return false;
+    editor.path = rslt;
+    updateRecentFiles( editor.path );
 
     let index = 0;
     for( let i = 0; i< editors.length; i++ ){
-      if( editors[i] === active ){
+      if( editors[i] === editor ){
         index = i;
         break;
       }
     }
 
     tabs[index].querySelector( ".tab-label" ).textContent = path.basename( rslt );
-    this.save();
+    save(editor);
 
     let arr = [];
     editors.forEach( function( editor ){
@@ -411,20 +521,41 @@ const Editor = function(opts){
     Settings.openFiles = arr;
     ensureMode();
 
+    return true;
+
   };
 
-  this.open = function(){
-    
-    let rslt = dialog.showOpenDialog({
-      defaultPath: Settings.openPath,
-      filters: [
-        {name: 'R files', extensions: ['r', 'rsrc', 'rscript']},
-        {name: 'All Files', extensions: ['*']}
-      ],
-      properties: ['openFile', 'NO_multiSelections']});
-    
-    if( !rslt ) return;
-    load( rslt[0], true );
+  this.save = save;
+  this.saveAs = saveAs;
+
+  // TODO: revert
+
+  this.open = function( file ){
+
+    if( !file ){    
+      let rslt = dialog.showOpenDialog({
+        defaultPath: Settings.openPath,
+        filters: [
+          {name: 'R files', extensions: ['r', 'rsrc', 'rscript']},
+          {name: 'All Files', extensions: ['*']}
+        ],
+        properties: ['openFile', 'NO_multiSelections']});
+      
+      if( !rslt ) return;
+      file = rslt[0];
+    }
+
+    // if the file is already open, don't open it again.
+    // switch to the buffer
+
+    for( let i = 0; i< editors.length; i++ ){
+      if( editors[i].path === file ){
+        selectTab(i);
+        return;
+      }
+    }
+
+    load( file, true );
 
   };
 

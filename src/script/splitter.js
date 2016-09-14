@@ -98,6 +98,26 @@ const Splitter = function( opts ){
   this.vertical = ( opts.direction === Splitter.prototype.Direction.VERTICAL );
   this.visible = [ true, true ];
 
+  /**
+   * set sizes (in %)
+   */
+  this.setSizes = function( a, b ){
+    
+    // normalize 
+    let sum = a+b;
+    a = 100 * a / sum;
+    b = 100 - a;
+
+    let field = this.vertical ? "height" : "width";
+    this.panes[0].style[field] = a + "%";
+    this.panes[1].style[field] = b + "%";
+    this.sizes = [ a, b ];
+
+  };
+
+  /**
+   * set visibility for pane
+   */
   this.setVisible = function( pane, visible, force_one_visible ){
 
     this.visible[pane] = visible;

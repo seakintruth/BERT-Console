@@ -389,11 +389,13 @@ const PipeR = function () {
 
   let client;
 
-  this.init = function(){
+  this.init = function(opts){
 
+    opts = opts || {};
     let s = "";
 
-    client = net.createConnection({path: '\\\\.\\pipe\\test-bert-pipe'}, () => {
+    if( !opts.pipename ) throw( "Missing pipe name");
+    client = net.createConnection({path: opts.pipename}, () => {
       //'connect' listener
       console.log('connected to service');
     });

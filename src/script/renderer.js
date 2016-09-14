@@ -19,6 +19,7 @@ const Splitter = require( "./splitter.js" );
 const Settings = require( "./settings.js" );
 const PipeR = require( "./piper.js" );
 const Editor = require( "./editor.js" );
+const Utils = require( "./utils.js" );
 
 // globals
 let splitter1, splitter2;
@@ -85,7 +86,7 @@ var hint_function = function (text, pos, callback) {
     if (obj.comps && obj.comps !== "NA") {
       var list = obj.comps;
       if (typeof list === "string") list = list.split(/\n/g ); // [list];
-      console.info( list );
+      //console.info( list );
       //callback(list, obj.response.start, obj.response.end);
       callback( list, obj.start + 1, obj.end + 1 );
     }
@@ -143,93 +144,10 @@ var about_dialog = function () {
   });
 };
 
-// on load, set up document
-document.addEventListener("DOMContentLoaded", function(event) {
+// menu
 
-  // this seems a bit fragile, perhaps these should be separate members 
-  let layout = Settings.layout || {
-    splitter1: [20, 80], splitter2: [50, 50]
-  };
 
-  /*
-  splitter1 = new Splitter({ node: document.body, size: layout.splitter1 });
-  splitter2 = new Splitter({ 
-    node: splitter1.panes[1], 
-    size: layout.splitter2,
-    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
-  });
-
-  window.s1 = splitter1;
-  window.s2 = splitter2;
-
-  let shellContainer = splitter2.panes[1];
-  */
-
-  splitter2 = new Splitter({ 
-    node: document.body, 
-    size: layout.splitter2,
-    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
-  });
-  window.s2 = splitter2;
-
-  let shellContainer = splitter2.panes[1];
-  
-  shellContainer.classList.add( "shell" );
-
-   // shell
-  shell = new Shell(CodeMirror, {
-    // debug: true,
-    container: shellContainer,
-    cursorBlinkRate: 0,
-    mode: "r",
-    hint_function: hint_function,
-    tip_function: tip_function,
-    exec_function: exec_function,
-    //function_key_callback: function_key_callback,
-    //suppress_initial_prompt: true,
-    viewport_change: function () {
-      PubSub.publish("viewport-change");
-    }
-  });
-
-  const shellContextMenu = Menu.buildFromTemplate([
-    { label: 'Select All', click: function(){
-      shell.select_all();
-    }},
-    { role: 'copy' },
-    { role: 'paste' },
-    { type: 'separator' },
-    { label: 'Clear Shell', click: function(){
-      shell.clear();
-    }}
-  ]);
-
-  shellContainer.addEventListener('contextmenu', function(e){
-    e.preventDefault();
-    shellContextMenu.popup(remote.getCurrentWindow());
-  }, false);
-
-  editor = new Editor({ node: splitter2.panes[0] });
-
-  shell.setOption("theme", "dark");
-  shell.refresh();
-
-  if (Settings["line.wrapping"]) shell.setOption("lineWrapping", true);
-  shell.setOption("matchBrackets", true);
-
-  R.on( "console", function( message, flag ){
-    if( flag === 1 ) shell.response( message, "shell-error" ); 
-    else shell.response( message );
-  })
-  R.init();
-
-  let updateLayout = function(dir){
-    console.info( "sld ->", dir );
-    splitter2.setDirection(dir);
-    Settings.layoutDirection = dir;
-  };
-
-  const mainMenu = Menu.buildFromTemplate([
+  let menuTemplate = [
     {
       label: "File", 
       submenu: [
@@ -242,6 +160,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
           label: 'Open...',
           accelerator: 'CmdOrCtrl+O',
           click: function(){ editor.open(); }
+        },
+        {
+          id: 'open_recent',
+          submenu: [],
+          label: 'Open Recent'
         },
         {
           label: 'Save',
@@ -305,42 +228,63 @@ document.addEventListener("DOMContentLoaded", function(event) {
       submenu: [
        
         {
+          id: 'editor_check',
           label: 'Editor',
           type: 'checkbox',
-          checked: true,
+          checked: !Settings.hide_editor,
+          accelerator: 'Ctrl+Shift+E',
           click: function( item ){
             splitter2.setVisible( 0, item.checked );
+            Settings.hide_editor = !item.checked;
+            if( item.checked ) editor.refresh();
           }
         },
         {
+          id: 'shell_check',
           label: 'R Shell',
           type: 'checkbox',
-          checked: true,
+          checked: !Settings.hide_shell,
+          accelerator: 'Ctrl+Shift+R',
           click: function( item ){
             splitter2.setVisible( 1, item.checked );
+            Settings.hide_shell = !item.checked;
+            shell.refresh();
           }
         },
          {
           label: 'Layout',
           submenu: [
             {
+              id: 'top_and_bottom',
               label: 'Top and Bottom',
               click( item, focusedWindow ){
-                updateLayout( Splitter.prototype.Direction.VERTICAL  );
+                updateLayout( Splitter.prototype.Direction.VERTICAL, true  );
               },
               type: 'radio',
-              checked: splitter2.vertical
+              //checked: splitter2.vertical
             },
             {
+              id: 'side_by_side',
               label: 'Side by Side',
               click( item, focusedWindow ){
-                updateLayout( Splitter.prototype.Direction.HORIZONTAL );
+                updateLayout( Splitter.prototype.Direction.HORIZONTAL, true );
               },
               type: 'radio',
-              checked: !splitter2.vertical
+              //checked: !splitter2.vertical
             }
           ]
         },
+        {type: 'separator'},
+
+        {
+          id: 'editor_theme',
+          label: "Editor Theme"
+        },
+        {
+          id: 'shell_theme',
+          label: "Shell Theme"
+        },
+
         {type: 'separator'},
 
         {
@@ -360,11 +304,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
       ]
     },
     {
-      label: "Window",
-      submenu: [
-      ]
-    },
-    {
       label: "Help",
       submenu: [
         {
@@ -378,7 +317,177 @@ document.addEventListener("DOMContentLoaded", function(event) {
       ]
     }
 
+  ];
+
+let updateMenu = function(){  
+
+  let node, template = menuTemplate;
+
+  // set checked for top/bottom, left/right
+  node = Utils.findNode( "top_and_bottom", template );
+  if( node ) node.checked = splitter2.vertical;
+
+  node = Utils.findNode( "side_by_side", template );
+  if( node ) node.checked = !splitter2.vertical;
+
+  // editor, shell visible
+  node = Utils.findNode( "editor_check", template );
+  if( node ) node.checked = splitter2.visible[0];
+
+  node = Utils.findNode( "shell_check", template );
+  if( node ) node.checked = splitter2.visible[1];
+
+  // set recent files
+  node = Utils.findNode( "open_recent", template );
+  let recent = Settings.recent_files || [];
+  let elements = recent.map( function( file ){
+    return {
+      label: file,
+      click: function(){ editor.open( file ) }
+    }
+  });
+  node.submenu = elements.reverse().slice(0,13);
+
+  fs.readdir( "dist/theme", function( err, files ){
+    
+    let themes = files.filter( function( test ){
+      return test.match( /\.css$/i );
+    }).map( function( file ){
+      let p = path.parse( file );
+      return p.name;
+    }).sort();
+    themes.unshift( "default" );
+
+    ["editor", "shell"].forEach( function( which ){
+      node = Utils.findNode( which + "_theme", template );
+      let checked = Settings[which + "_theme"] || ( which === "editor" ? "default" : "dark" );
+      
+      node.submenu = themes.map( function( theme ){
+        return {
+          label: theme, type: 'radio', checked: (checked === theme),
+          click: function(){ 
+            Settings[which + "_theme"] = theme;
+            updateThemes();
+          }
+        };
+      });
+    });
+
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  });
+
+};
+
+let updateThemes = function(){
+
+  shell.setOption("theme", Settings.shell_theme || "dark");
+  shell.refresh();
+  editor.updateTheme();
+
+  [Settings.shell_theme, Settings.editor_theme].forEach( function( theme ){
+    if( theme && theme !== "default" ) {
+      Utils.ensureCSS( `dist/theme/${theme}.css`, { 'data-watch': true } ); 
+    }
+  });
+
+};
+
+PubSub.subscribe( "menu-update", updateMenu );
+
+  let updateLayout = function( dir, reset ){
+    console.info( "sld ->", dir );
+    splitter2.setDirection(dir);
+    Settings.layoutDirection = dir;
+    if( reset ){
+      splitter2.setVisible(0, true);
+      splitter2.setVisible(1, true);
+      splitter2.setSizes( 50, 50 );
+    }
+  };
+  
+
+// on load, set up document
+document.addEventListener("DOMContentLoaded", function(event) {
+
+  // this seems a bit fragile, perhaps these should be separate members 
+  let layout = Settings.layout || {
+    splitter1: [20, 80], splitter2: [50, 50]
+  };
+
+  /*
+  splitter1 = new Splitter({ node: document.body, size: layout.splitter1 });
+  splitter2 = new Splitter({ 
+    node: splitter1.panes[1], 
+    size: layout.splitter2,
+    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
+  });
+
+  window.s1 = splitter1;
+  window.s2 = splitter2;
+
+  let shellContainer = splitter2.panes[1];
+  */
+
+  splitter2 = new Splitter({ 
+    node: document.body, 
+    size: layout.splitter2,
+    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
+  });
+
+  if( Settings.hide_editor ) splitter2.setVisible( 0, false );
+  if( Settings.hide_shell ) splitter2.setVisible( 1, false );
+
+  let shellContainer = splitter2.panes[1];
+  
+  shellContainer.classList.add( "shell" );
+
+   // shell
+  shell = new Shell(CodeMirror, {
+    // debug: true,
+    container: shellContainer,
+    cursorBlinkRate: 0,
+    mode: "r",
+    hint_function: hint_function,
+    tip_function: tip_function,
+    exec_function: exec_function,
+    //function_key_callback: function_key_callback,
+    //suppress_initial_prompt: true,
+    viewport_change: function () {
+      PubSub.publish("viewport-change");
+    }
+  });
+
+  const shellContextMenu = Menu.buildFromTemplate([
+    { label: 'Select All', click: function(){
+      shell.select_all();
+    }},
+    { role: 'copy' },
+    { role: 'paste' },
+    { type: 'separator' },
+    { label: 'Clear Shell', click: function(){
+      shell.clear();
+    }}
   ]);
-  Menu.setApplicationMenu(mainMenu);
+
+  shellContainer.addEventListener('contextmenu', function(e){
+    e.preventDefault();
+    shellContextMenu.popup(remote.getCurrentWindow());
+  }, false);
+
+  editor = new Editor({ node: splitter2.panes[0] });
+
+  if (Settings["line.wrapping"]) shell.setOption("lineWrapping", true);
+  shell.setOption("matchBrackets", true);
+
+  R.on( "console", function( message, flag ){
+    if( flag === 1 ) shell.response( message, "shell-error" ); 
+    else shell.response( message );
+  })
+
+  R.init({ pipename: process.env.BERT_PIPE_NAME });
+
+  updateThemes();
+  updateMenu();
 
 });
+
