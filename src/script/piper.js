@@ -395,7 +395,7 @@ const PipeR = function () {
     let s = "";
 
     if( !opts.pipename ) throw( "Missing pipe name");
-    client = net.createConnection({path: opts.pipename}, () => {
+    client = net.createConnection({path: "\\\\.\\pipe\\" + opts.pipename}, () => {
       //'connect' listener
       console.log('connected to service');
     });
