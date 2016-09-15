@@ -6,7 +6,7 @@ A couple of key things to know:
 
  * If you save a file in this editor, BERT will reload the startup
    file. If you want to do something more complicated -- like 
-   recalculating the spreadsheet -- see the docs on watching files.
+   recalculating your spreadsheet -- see the docs on watching files.
  
  * The R shell is "live" and connected to Excel -- see the docs on 
    talking to Excel from R, and the Excel scripting (COM) interface.
@@ -20,7 +20,7 @@ electron, and node.js.  This is a complicated stack but the end
 result should be very easy to use, configurable and extensible.
 
 You don't have to use our editor -- use any editor you like.  You
-can hide this editor in the `View` menu, and just use the command
+can hide this editor in the *View* menu, and just use the command
 shell.
 
 Have suggestions, feedback, questions, comments?  Let us know!  

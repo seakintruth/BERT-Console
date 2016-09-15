@@ -26,6 +26,7 @@ const Editor = function(opts){
     if( active ){
       active.cm.off( "cursorActivity" );
       active.cm.off( "change" );
+      active.cm.off( "focus" );
     }
     active = editor;
 
@@ -33,9 +34,12 @@ const Editor = function(opts){
 
     active.cm.on( "cursorActivity", function(){
       updatePosition();
-    })
+    });
     active.cm.on( "change", function(){
       markDirty( true );
+    });
+    active.cm.on( "focus", function(){
+      PubSub.publish( "focus-event", "editor" );
     });
 
     updateStatus();
@@ -52,7 +56,9 @@ const Editor = function(opts){
       <div id='tabBar' class='editor-tab-bar'></div>
       <div id='contentPanel' class='editor-content-panel'></div>
       <div id='statusBar' class='editor-status-bar'>
-        <div class='left'></div>
+        <div class='left'>
+          <div class='message' id='focus-message'></div>
+        </div>
         <div class='right'>
           <div class='position' id='statusPosition'></div>
           <div class='language' id='statusLanguage'></div>
@@ -111,6 +117,10 @@ const Editor = function(opts){
     active.cm.refresh();
     active.cm.focus();
 
+  };
+
+  this.focus = function(){
+    if( active ) active.cm.focus();
   };
 
   let closeEditor = function(index){

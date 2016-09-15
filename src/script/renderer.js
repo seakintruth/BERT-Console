@@ -26,7 +26,40 @@ let splitter1, splitter2;
 let shell, editor;
 let R = new PipeR();
 
+let focused = null;
+let focusMessage = null;
+let fmcount = 0;
+
 let last_parse_status = Shell.prototype.PARSE_STATUS.OK;
+
+PubSub.subscribe( "focus-event", function( channel, owner ){
+  focused = owner;
+  updateFocusMessage();
+});
+
+R.on( "pipe-closed", function(){
+  global.__quit =  true;
+  remote.getCurrentWindow().close();
+});
+
+let updateFocusMessage = function(){
+
+  if( !focusMessage ) focusMessage = document.getElementById( "focus-message" );
+  if( !focusMessage ) return;
+
+  let message;
+
+  if(!(splitter2.visible[0] && splitter2.visible[1] )) message = "";
+  else {
+    message = ( focused === "editor" ? "Editor" : "Shell" ) + " has focus";
+    if( fmcount++ < 5 ){
+      message += " (use Ctrl+E to switch)";
+    }
+  }
+  
+  focusMessage.textContent = message;
+
+};
 
 PubSub.subscribe( "settings-change", function( channel, update ){
   // console.info( "SC", update );
@@ -51,6 +84,13 @@ window.addEventListener( "keydown", function(e){
       e.preventDefault();
       editor.selectEditor({ delta: 1 });
     }
+    else if( e.code === "KeyE" ){
+      e.stopPropagation();
+      e.preventDefault();
+      if( focused === "editor" ) shell.focus();
+      else editor.focus();
+    }
+    // else console.info( e.code );
     return;
   }
 })
@@ -237,6 +277,7 @@ var about_dialog = function () {
             splitter2.setVisible( 0, item.checked );
             Settings.hide_editor = !item.checked;
             if( item.checked ) editor.refresh();
+            updateFocusMessage();
           }
         },
         {
@@ -249,6 +290,7 @@ var about_dialog = function () {
             splitter2.setVisible( 1, item.checked );
             Settings.hide_shell = !item.checked;
             shell.refresh();
+            updateFocusMessage();
           }
         },
          {
@@ -313,6 +355,11 @@ var about_dialog = function () {
         {
           label: "Learn More",
           click () { window.require('electron').shell.openExternal('https://bert-toolkit.com') }
+        },
+        { type: 'separator' },
+        {
+          label: "Feedback",
+          click () { window.require('electron').shell.openExternal('https://bert-toolkit.com/contact') }
         }
       ]
     }
@@ -349,14 +396,17 @@ let updateMenu = function(){
   node.submenu = elements.reverse().slice(0,13);
 
   fs.readdir( "dist/theme", function( err, files ){
-    
-    let themes = files.filter( function( test ){
-      return test.match( /\.css$/i );
-    }).map( function( file ){
-      let p = path.parse( file );
-      return p.name;
-    }).sort();
-    themes.unshift( "default" );
+
+    let themes = [];    
+    if( !err ){
+      themes = files.filter( function( test ){
+        return test.match( /\.css$/i );
+      }).map( function( file ){
+        let p = path.parse( file );
+        return p.name;
+      }).sort();
+      themes.unshift( "default" );
+    }
 
     ["editor", "shell"].forEach( function( which ){
       node = Utils.findNode( which + "_theme", template );
@@ -395,7 +445,6 @@ let updateThemes = function(){
 PubSub.subscribe( "menu-update", updateMenu );
 
   let updateLayout = function( dir, reset ){
-    console.info( "sld ->", dir );
     splitter2.setDirection(dir);
     Settings.layoutDirection = dir;
     if( reset ){
@@ -479,15 +528,35 @@ document.addEventListener("DOMContentLoaded", function(event) {
   if (Settings["line.wrapping"]) shell.setOption("lineWrapping", true);
   shell.setOption("matchBrackets", true);
 
+  shell.getCM().on( "focus", function(){
+    PubSub.publish( "focus-event", "shell" );
+  });
+
   R.on( "console", function( message, flag ){
     if( flag === 1 ) shell.response( message, "shell-error" ); 
     else shell.response( message );
   })
 
-  R.init({ pipename: process.env.BERT_PIPE_NAME });
+  let pipename = process.env.BERT_PIPE_NAME;
+  for( let i = 0; i< process.argv.length; i++ ){
+    if( process.argv[i] === "--pipename" && i< process.argv.length-1 ){
+      pipename = process.argv[++i];
+    }
+  }
+
+  // console.info( "pipename", pipename );
+  R.init({ pipename: pipename });
 
   updateThemes();
   updateMenu();
+
+  shell.focus();
+
+  window.addEventListener("beforeunload", function (event) {
+    if( global.__quit ) return;
+    event.returnValue = false;
+    R.internal( ["hide"], "hide" );
+  });
 
 });
 

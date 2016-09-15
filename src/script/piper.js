@@ -420,7 +420,8 @@ const PipeR = function () {
     */
 
     client.on('end', () => {
-      console.log('disconnected from server');
+      console.log('disconnected from pipe (xmit)');
+      this.emit( "pipe-closed" );
     });
   }
 
