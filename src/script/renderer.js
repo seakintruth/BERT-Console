@@ -13,6 +13,7 @@ const PubSub = require( "pubsub-js" );
 const Shell = require( "cmjs-shell" );
 const fs = require( "fs" );
 const path = require( "path" );
+const chokidar = window.require('chokidar');
 
 // local modules
 const Splitter = require( "./splitter.js" );
@@ -27,14 +28,35 @@ let shell, editor;
 let R = new PipeR();
 
 let focused = null;
-let focusMessage = null;
+let statusMessage = null;
 let fmcount = 0;
 
+const USER_STYLESHEET_PATH = "dist/user-stylesheet.css";
+
 let last_parse_status = Shell.prototype.PARSE_STATUS.OK;
+
+// FIXME: theme files
+chokidar.watch( USER_STYLESHEET_PATH ).on('change', (event, path) => {
+  console.log(event, path);
+  updateUserStylesheet();
+});
 
 PubSub.subscribe( "focus-event", function( channel, owner ){
   focused = owner;
   updateFocusMessage();
+});
+
+PubSub.subscribe( "editor-new-tab", function(){
+
+  // if the editor is not visible, show it
+  if( !splitter2.visible[0] ){
+
+    splitter2.setVisible( 0, true );
+    if( splitter2.size[0] < 13 ) splitter2.setSizes( 50, 50 );
+    updateMenu();
+
+  }
+
 });
 
 R.on( "pipe-closed", function(){
@@ -44,8 +66,8 @@ R.on( "pipe-closed", function(){
 
 let updateFocusMessage = function(){
 
-  if( !focusMessage ) focusMessage = document.getElementById( "focus-message" );
-  if( !focusMessage ) return;
+  if( !statusMessage ) statusMessage = document.getElementById( "focus-message" );
+  if( !statusMessage ) return;
 
   let message;
 
@@ -57,9 +79,15 @@ let updateFocusMessage = function(){
     }
   }
   
-  focusMessage.textContent = message;
+  statusMessage.textContent = message;
 
 };
+
+PubSub.subscribe( "splitter-drag", function( channel, splitter ){
+  if( !statusMessage ) statusMessage = document.getElementById( "focus-message" );
+  if( !statusMessage ) return;
+  statusMessage.innerText = `Layout: ${splitter.size[0].toFixed(1)}% / ${splitter.size[1].toFixed(1)}%`;
+});
 
 PubSub.subscribe( "settings-change", function( channel, update ){
   // console.info( "SC", update );
@@ -269,7 +297,7 @@ var about_dialog = function () {
        
         {
           id: 'editor_check',
-          label: 'Editor',
+          label: 'Show Editor',
           type: 'checkbox',
           checked: !Settings.hide_editor,
           accelerator: 'Ctrl+Shift+E',
@@ -282,7 +310,7 @@ var about_dialog = function () {
         },
         {
           id: 'shell_check',
-          label: 'R Shell',
+          label: 'Show R Shell',
           type: 'checkbox',
           checked: !Settings.hide_shell,
           accelerator: 'Ctrl+Shift+R',
@@ -319,30 +347,73 @@ var about_dialog = function () {
         {type: 'separator'},
 
         {
-          id: 'editor_theme',
-          label: "Editor Theme"
-        },
-        {
-          id: 'shell_theme',
-          label: "Shell Theme"
+          label: "Editor",
+          submenu: [
+            {
+              id: 'editor_theme',
+              label: "Theme"
+            },
+            {
+              label: "Show Line Numbers",
+              type: "checkbox",
+              checked: !Settings.editor_hide_linenumbers,
+              click: function(item){ Settings.editor_hide_linenumbers = !item.checked; }
+            },
+            {
+              label: "Show Status Bar",
+              type: "checkbox",
+              checked: !Settings.editor_hide_status_bar,
+              click: function(item){ Settings.editor_hide_status_bar = !item.checked; }
+            }
+          ]
         },
 
-        {type: 'separator'},
+        {
+          label: "Shell",
+          submenu: [
+            {
+              id: 'shell_theme',
+              label: "Theme"
+            },
+            {
+              label: "Wrap Long Lines",
+              type: "checkbox",
+              checked: !!Settings.shell_wrap_on,
+              click: function(item){ Settings.shell_wrap_on = !item.checked; }
+            },
+          ]
+        },
 
         {
-          label: 'Reload',
-          accelerator: 'CmdOrCtrl+R',
-          click (item, focusedWindow) {
-            if (focusedWindow) focusedWindow.reload()
+          label: "User Stylesheet",
+          click: function(){
+            editor.open( USER_STYLESHEET_PATH );
           }
         },
+
+        { type: 'separator' },
+
         {
-          label: 'Toggle Developer Tools',
-          accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-          click (item, focusedWindow) {
-            if (focusedWindow) focusedWindow.webContents.toggleDevTools()
-          }
-        }
+          label: "Developer",
+          submenu: [
+            {
+              label: 'Reload',
+              accelerator: 'CmdOrCtrl+R',
+              click (item, focusedWindow) {
+                if (focusedWindow) focusedWindow.reload()
+              }
+            },
+            {
+              label: 'Toggle Developer Tools',
+              accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+              click (item, focusedWindow) {
+                if (focusedWindow) focusedWindow.webContents.toggleDevTools()
+              }
+            }
+
+          ]
+        },
+
       ]
     },
     {
@@ -365,6 +436,17 @@ var about_dialog = function () {
     }
 
   ];
+
+let updateUserStylesheet = function(){
+
+  let s = `link[href='${USER_STYLESHEET_PATH}']`;
+  let node = document.head.querySelector( s );
+  if( node ){
+    node.parentNode.removeChild( node );
+  }
+  Utils.ensureCSS( USER_STYLESHEET_PATH, { 'data-position': 'last' }, document.head );
+
+};
 
 let updateMenu = function(){  
 
@@ -457,6 +539,10 @@ PubSub.subscribe( "menu-update", updateMenu );
 
 // on load, set up document
 document.addEventListener("DOMContentLoaded", function(event) {
+
+  // webpack inserts css as style blocks, but we want to ensure
+  // that this is last.  
+  updateUserStylesheet();
 
   // this seems a bit fragile, perhaps these should be separate members 
   let layout = Settings.layout || {
@@ -553,7 +639,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   shell.focus();
 
   window.addEventListener("beforeunload", function (event) {
-    if( global.__quit ) return;
+    if( global.__quit || global.allowReload ) return;
     event.returnValue = false;
     R.internal( ["hide"], "hide" );
   });

@@ -20,6 +20,22 @@ const Editor = function(opts){
   let editors = [];
   let tabs = [];
 
+  PubSub.subscribe( "settings-change", function( channel, update ){
+    if( update ){
+      switch( update.key ){
+      case "editor_hide_linenumbers":
+        editors.forEach( function( editor ){
+          editor.cm.setOption( "lineNumbers", !Settings.editor_hide_linenumbers );
+        });
+        break;
+      case "editor_hide_status_bar":
+        document.getElementById( "statusBar" ).style.display = 
+          Settings.editor_hide_status_bar ? "none" : "";
+        break;
+      }
+    }
+  });
+
   let activate = function( editor ){
 
     if( active === editor ) return;
@@ -50,6 +66,10 @@ const Editor = function(opts){
   orphans.className = "orphans";
   document.body.appendChild( orphans );
 
+  // FIXME: this is handy, but webpack is forced to leave
+  // it as-is.  better would be to use a file, or let webpack
+  // know if can compress whitespace.
+
   let nodes = NodeMap.parse(`
 
     <div id='editorPanel' class='editor-panel'>
@@ -67,6 +87,8 @@ const Editor = function(opts){
     </div>
 
   `, opts.node );
+
+  if( Settings.editor_hide_status_bar ) nodes.statusBar.style.display = "none";
 
   let markDirty = function( dirty ){
     active.dirty = dirty;
@@ -359,7 +381,7 @@ const Editor = function(opts){
     options.cm =  CodeMirror( function(elt){
       options.node.appendChild( elt );
       }, { 
-        lineNumbers: true,
+        lineNumbers: !Settings.editor_hide_linenumbers,
         value: options.value || "",
         mode: "",
         // mode: "r", // opts.mode,
@@ -380,6 +402,7 @@ const Editor = function(opts){
     if( !toll ){
       activate( options );
       updateStatus();
+      PubSub.publish( "editor-new-tab" );
     }
 
     ensureMode(options);

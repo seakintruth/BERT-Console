@@ -55,6 +55,8 @@ const mousedown = function(event){
       this.panes[1].style[field] = this.size[1] + "%";
     }
 
+    PubSub.publish( "splitter-drag", this );
+
   }.bind(this);
 
   let finish = function(){
