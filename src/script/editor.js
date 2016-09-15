@@ -12,6 +12,25 @@ const PubSub = require( 'pubsub-js' );
 const NodeMap = require( './node-map.js' );
 const Menu = remote.Menu;
 
+// define this in a usable format, we'll unpack.
+// FIXME: external data file
+
+let supportedLanguages = {
+
+  R: { extensions: [ 'r', 'rscript', 'rsrc' ], path: 'r' },
+  Javascript: { extensions: [ 'js', 'jscript', 'json' ], path: 'javascript' },
+  CSS: { extensions: [ 'css' ], path: 'css' },
+  Markdown: { extensions: [ 'md', 'markdown' ], path: 'markdown' }
+
+};
+
+let languages = {};
+Object.keys( supportedLanguages ).forEach( function( language ){
+  supportedLanguages[language].extensions.forEach( function( ext ){
+    languages[ext] = { language: language, path: supportedLanguages[language].path };
+  });
+})
+
 const Editor = function(opts){
 
   if( !opts || !opts.node ) throw( "node required" );
@@ -77,7 +96,7 @@ const Editor = function(opts){
       <div id='contentPanel' class='editor-content-panel'></div>
       <div id='statusBar' class='editor-status-bar'>
         <div class='left'>
-          <div class='message' id='focus-message'></div>
+          <div class='message' id='status-message'></div>
         </div>
         <div class='right'>
           <div class='position' id='statusPosition'></div>
@@ -110,9 +129,11 @@ const Editor = function(opts){
 
   let updateStatus = function(){
     if( !active ) return;
-    let mode = active.cm.getOption("mode") || "?";
-    mode = mode[0].toUpperCase() + mode.substr(1).toLowerCase();
-    nodes.statusLanguage.textContent = `Language: ${mode}`;
+
+//    let mode = active.cm.getOption("mode") || "?";
+//    mode = mode[0].toUpperCase() + mode.substr(1).toLowerCase();
+
+    nodes.statusLanguage.textContent = `Language: ${active.language || "?"}`;
     updatePosition();
   };
 
@@ -315,33 +336,15 @@ const Editor = function(opts){
     if(!editor || !editor.path) return;
     let ext = path.extname( editor.path );
     if( !ext || ext.length < 2 ) return;
-    let mode;
 
-    switch( ext.substr( 1 ).toLowerCase()){
-    case 'r':
-    case 'rsrc':
-    case 'rscript':
-      mode = 'r';
-      break;
-    case 'md':
-      mode = 'markdown';
-      break;
-    case 'js':
-    case 'json':
-      mode = 'javascript';
-      break;
-    case 'css':
-      mode = 'css';
-      break;
-    default: 
-      console.info( "UNHANDLED", ext );
-      return;
-    };
+    let language = languages[ext.substr(1).toLowerCase()];
+    editor.language = language ? language.language : null;
+    if( !language ) return;
 
-    let available = ensureScript( cmmode(mode));
+    let available = ensureScript( cmmode(language.path));
 
     setTimeout( function(){
-      editor.cm.setOption( "mode", mode );
+      editor.cm.setOption( "mode", language.path );
       updateStatus();
     }, available ? 1 : 500 );
 

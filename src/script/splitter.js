@@ -35,24 +35,32 @@ const mousedown = function(event){
 
   let originalSize = this.size.slice(0);
 
+  let field, target = 0;
+  if( this.vertical ){
+    field = "height";
+    if( this.panes[1].offsetTop < this.panes[0].offsetTop ) target = 1;
+  }
+  else {
+    field = "width";
+    if( this.panes[1].offsetLeft < this.panes[0].offsetLeft ) target = 1;
+  }
+
   let drag = function(event){
 
-    let size, field;
+    let size;
 
     if( this.vertical ){
       size = Math.round( 1000 * event.offsetY / this.node.offsetHeight ) / 10;
-      field = "height";
     }
     else {
       size = Math.round( 1000 * event.offsetX / this.node.offsetWidth ) / 10;
-      field = "width";
     }
 
     if( Math.abs(this.size[0] - size) >= Splitter.prototype.MINIMUM_STEP ){
-      this.size[0] = size;
-      this.size[1] = 100-size;
-      this.panes[0].style[field] = this.size[0] + "%";
-      this.panes[1].style[field] = this.size[1] + "%";
+      this.size[target] = size;
+      this.size[1-target] = 100-size;
+      this.panes[target].style[field] = this.size[target] + "%";
+      this.panes[1-target].style[field] = this.size[1-target] + "%";
     }
 
     PubSub.publish( "splitter-drag", this );

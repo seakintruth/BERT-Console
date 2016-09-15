@@ -23,7 +23,7 @@ const Editor = require( "./editor.js" );
 const Utils = require( "./utils.js" );
 
 // globals
-let splitter1, splitter2;
+let splitWindow;
 let shell, editor;
 let R = new PipeR();
 
@@ -37,7 +37,6 @@ let last_parse_status = Shell.prototype.PARSE_STATUS.OK;
 
 // FIXME: theme files
 chokidar.watch( USER_STYLESHEET_PATH ).on('change', (event, path) => {
-  console.log(event, path);
   updateUserStylesheet();
 });
 
@@ -49,10 +48,10 @@ PubSub.subscribe( "focus-event", function( channel, owner ){
 PubSub.subscribe( "editor-new-tab", function(){
 
   // if the editor is not visible, show it
-  if( !splitter2.visible[0] ){
+  if( !splitWindow.visible[0] ){
 
-    splitter2.setVisible( 0, true );
-    if( splitter2.size[0] < 13 ) splitter2.setSizes( 50, 50 );
+    splitWindow.setVisible( 0, true );
+    if( splitWindow.size[0] < 13 ) splitWindow.setSizes( 50, 50 );
     updateMenu();
 
   }
@@ -66,12 +65,12 @@ R.on( "pipe-closed", function(){
 
 let updateFocusMessage = function(){
 
-  if( !statusMessage ) statusMessage = document.getElementById( "focus-message" );
+  if( !statusMessage ) statusMessage = document.getElementById( "status-message" );
   if( !statusMessage ) return;
 
   let message;
 
-  if(!(splitter2.visible[0] && splitter2.visible[1] )) message = "";
+  if(!(splitWindow.visible[0] && splitWindow.visible[1] )) message = "";
   else {
     message = ( focused === "editor" ? "Editor" : "Shell" ) + " has focus";
     if( fmcount++ < 5 ){
@@ -84,7 +83,7 @@ let updateFocusMessage = function(){
 };
 
 PubSub.subscribe( "splitter-drag", function( channel, splitter ){
-  if( !statusMessage ) statusMessage = document.getElementById( "focus-message" );
+  if( !statusMessage ) statusMessage = document.getElementById( "status-message" );
   if( !statusMessage ) return;
   statusMessage.innerText = `Layout: ${splitter.size[0].toFixed(1)}% / ${splitter.size[1].toFixed(1)}%`;
 });
@@ -95,8 +94,7 @@ PubSub.subscribe( "settings-change", function( channel, update ){
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
   Settings.layout = {
-    // splitter1: splitter1.size.slice(0),
-    splitter2: splitter2.size.slice(0)
+    splitWindow: splitWindow.size.slice(0)
   }
 });
 
@@ -302,7 +300,7 @@ var about_dialog = function () {
           checked: !Settings.hide_editor,
           accelerator: 'Ctrl+Shift+E',
           click: function( item ){
-            splitter2.setVisible( 0, item.checked );
+            splitWindow.setVisible( 0, item.checked );
             Settings.hide_editor = !item.checked;
             if( item.checked ) editor.refresh();
             updateFocusMessage();
@@ -315,7 +313,7 @@ var about_dialog = function () {
           checked: !Settings.hide_shell,
           accelerator: 'Ctrl+Shift+R',
           click: function( item ){
-            splitter2.setVisible( 1, item.checked );
+            splitWindow.setVisible( 1, item.checked );
             Settings.hide_shell = !item.checked;
             shell.refresh();
             updateFocusMessage();
@@ -331,7 +329,7 @@ var about_dialog = function () {
                 updateLayout( Splitter.prototype.Direction.VERTICAL, true  );
               },
               type: 'radio',
-              //checked: splitter2.vertical
+              //checked: splitWindow.vertical
             },
             {
               id: 'side_by_side',
@@ -340,7 +338,7 @@ var about_dialog = function () {
                 updateLayout( Splitter.prototype.Direction.HORIZONTAL, true );
               },
               type: 'radio',
-              //checked: !splitter2.vertical
+              //checked: !splitWindow.vertical
             }
           ]
         },
@@ -400,7 +398,10 @@ var about_dialog = function () {
               label: 'Reload',
               accelerator: 'CmdOrCtrl+R',
               click (item, focusedWindow) {
-                if (focusedWindow) focusedWindow.reload()
+                if (focusedWindow){
+                  global.allowReload = true;
+                  focusedWindow.reload()
+                }
               }
             },
             {
@@ -439,12 +440,13 @@ var about_dialog = function () {
 
 let updateUserStylesheet = function(){
 
-  let s = `link[href='${USER_STYLESHEET_PATH}']`;
+  let s = `link[data-id=user-stylesheet]`;
   let node = document.head.querySelector( s );
   if( node ){
     node.parentNode.removeChild( node );
   }
-  Utils.ensureCSS( USER_STYLESHEET_PATH, { 'data-position': 'last' }, document.head );
+  let f = path.join( process.cwd(), USER_STYLESHEET_PATH ); // + "?" + new Date().getTime();
+  Utils.ensureCSS( f, { 'data-position': 'last', 'data-id': 'user-stylesheet' }, document.head );
 
 };
 
@@ -454,17 +456,17 @@ let updateMenu = function(){
 
   // set checked for top/bottom, left/right
   node = Utils.findNode( "top_and_bottom", template );
-  if( node ) node.checked = splitter2.vertical;
+  if( node ) node.checked = splitWindow.vertical;
 
   node = Utils.findNode( "side_by_side", template );
-  if( node ) node.checked = !splitter2.vertical;
+  if( node ) node.checked = !splitWindow.vertical;
 
   // editor, shell visible
   node = Utils.findNode( "editor_check", template );
-  if( node ) node.checked = splitter2.visible[0];
+  if( node ) node.checked = splitWindow.visible[0];
 
   node = Utils.findNode( "shell_check", template );
-  if( node ) node.checked = splitter2.visible[1];
+  if( node ) node.checked = splitWindow.visible[1];
 
   // set recent files
   node = Utils.findNode( "open_recent", template );
@@ -527,12 +529,12 @@ let updateThemes = function(){
 PubSub.subscribe( "menu-update", updateMenu );
 
   let updateLayout = function( dir, reset ){
-    splitter2.setDirection(dir);
+    splitWindow.setDirection(dir);
     Settings.layoutDirection = dir;
     if( reset ){
-      splitter2.setVisible(0, true);
-      splitter2.setVisible(1, true);
-      splitter2.setSizes( 50, 50 );
+      splitWindow.setVisible(0, true);
+      splitWindow.setVisible(1, true);
+      splitWindow.setSizes( 50, 50 );
     }
   };
   
@@ -546,33 +548,34 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   // this seems a bit fragile, perhaps these should be separate members 
   let layout = Settings.layout || {
-    splitter1: [20, 80], splitter2: [50, 50]
+    // splitter1: [20, 80], 
+    splitWindow: [50, 50]
   };
 
   /*
   splitter1 = new Splitter({ node: document.body, size: layout.splitter1 });
-  splitter2 = new Splitter({ 
+  splitWindow = new Splitter({ 
     node: splitter1.panes[1], 
-    size: layout.splitter2,
+    size: layout.splitWindow,
     direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
   });
 
   window.s1 = splitter1;
-  window.s2 = splitter2;
+  window.s2 = splitWindow;
 
-  let shellContainer = splitter2.panes[1];
+  let shellContainer = splitWindow.panes[1];
   */
 
-  splitter2 = new Splitter({ 
+  splitWindow = new Splitter({ 
     node: document.body, 
-    size: layout.splitter2,
+    size: layout.splitWindow,
     direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
   });
 
-  if( Settings.hide_editor ) splitter2.setVisible( 0, false );
-  if( Settings.hide_shell ) splitter2.setVisible( 1, false );
+  if( Settings.hide_editor ) splitWindow.setVisible( 0, false );
+  if( Settings.hide_shell ) splitWindow.setVisible( 1, false );
 
-  let shellContainer = splitter2.panes[1];
+  let shellContainer = splitWindow.panes[1];
   
   shellContainer.classList.add( "shell" );
 
@@ -609,7 +612,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     shellContextMenu.popup(remote.getCurrentWindow());
   }, false);
 
-  editor = new Editor({ node: splitter2.panes[0] });
+  editor = new Editor({ node: splitWindow.panes[0] });
 
   if (Settings["line.wrapping"]) shell.setOption("lineWrapping", true);
   shell.setOption("matchBrackets", true);
@@ -619,8 +622,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   });
 
   R.on( "console", function( message, flag ){
-    if( flag === 1 ) shell.response( message, "shell-error" ); 
-    else shell.response( message );
+    shell.response( message, flag ? "shell-error" : "shell-text" );
   })
 
   let pipename = process.env.BERT_PIPE_NAME;
