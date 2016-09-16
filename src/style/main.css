@@ -1,4 +1,8 @@
 
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
 html {
   box-sizing: border-box;
   height: 100%;
@@ -9,13 +13,8 @@ html {
 body {
   height: 100%;
   width: 100%;
-  position: flex;
   margin: 0;
   overflow: hidden;
-}
-
-*, *:before, *:after {
-  box-sizing: inherit;
 }
 
 .CodeMirror, .fixed-width { 

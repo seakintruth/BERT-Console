@@ -10,7 +10,9 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
 const NodeMap = require( './node-map.js' );
+const Utils = require( './utils.js' );
 const Menu = remote.Menu;
+const Search = require( "./search.js" );
 
 // define this in a usable format, we'll unpack.
 // FIXME: external data file
@@ -19,6 +21,7 @@ let supportedLanguages = {
 
   R: { extensions: [ 'r', 'rscript', 'rsrc' ], path: 'r' },
   Javascript: { extensions: [ 'js', 'jscript', 'json' ], path: 'javascript' },
+  HTML: { extensions: [ 'htm', 'html' ], path: 'htmlmixed', depends: [ 'xml', 'javascript', 'css' ] },
   CSS: { extensions: [ 'css' ], path: 'css' },
   Markdown: { extensions: [ 'md', 'markdown' ], path: 'markdown' }
 
@@ -93,7 +96,12 @@ const Editor = function(opts){
 
     <div id='editorPanel' class='editor-panel'>
       <div id='tabBar' class='editor-tab-bar'></div>
-      <div id='contentPanel' class='editor-content-panel'></div>
+      <div id='container' class='editor-container'>
+        <div id='contentPanel' class='editor-content-panel'></div>
+        <div id='searchPanel' class='editor-search-panel'>
+          <label for='find-text'>Find:</label><input type='text' name='find-text' id='find-text'/>
+        </div>
+      </div>
       <div id='statusBar' class='editor-status-bar'>
         <div class='left'>
           <div class='message' id='status-message'></div>
@@ -214,6 +222,38 @@ const Editor = function(opts){
     }
 
   };
+
+  ////////////
+
+  const editorContextMenuTemplate = [
+    { 
+      label: 'Select All', click: function(){
+        active.cm.execCommand('selectAll');
+    }},
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    { type: 'separator' },
+    {
+      id: 'execute',
+      label: "Execute selected code",
+      enabled: false,
+      click: function(){
+        let code = active.cm.getDoc().getSelection();
+        PubSub.publish( "execute-block", code );
+      }
+    }
+  ];
+
+  nodes.contentPanel.addEventListener('contextmenu', function(e){
+    e.preventDefault();
+    let mode = active.cm.getOption("mode");
+    let node = Utils.findNode( "execute", editorContextMenuTemplate );
+    if( node ) node.enabled = (mode === 'r' && active.cm.getDoc().somethingSelected());
+    Menu.buildFromTemplate( editorContextMenuTemplate ).popup(remote.getCurrentWindow());
+  }, false);
+
+  ////////////
 
   const tabContextMenu = Menu.buildFromTemplate([
     { label: 'Close', 
@@ -341,7 +381,13 @@ const Editor = function(opts){
     editor.language = language ? language.language : null;
     if( !language ) return;
 
-    let available = ensureScript( cmmode(language.path));
+    let available = ensureScript( cmmode( language.path ));
+
+    if( language.depends ){
+      language.depends.forEach( function( p ){
+        available = available && ensureScript( cmmode( p ));
+      });
+    }
 
     setTimeout( function(){
       editor.cm.setOption( "mode", language.path );
@@ -400,6 +446,8 @@ const Editor = function(opts){
         cm.replaceSelection(spaces);
       }
     });
+
+    Search.apply( options.cm );
 
     editors.push(options);
     if( !toll ){
@@ -563,6 +611,47 @@ const Editor = function(opts){
 
   this.save = save;
   this.saveAs = saveAs;
+
+  // --- find and replace ---
+
+  /**
+   * display and focus the search panel
+   */
+  this.find = function(){
+
+    // if( nodes.searchPanel.style.display === "block" ) return;
+    nodes.searchPanel.style.display = "block";
+    nodes['find-text'].focus();
+    search();
+
+  };
+
+  nodes['find-text'].addEventListener( "keydown", function(e){
+    e.stopPropagation();
+    if( e.key === "Escape" ){
+      if( active ) active.cm.focus();
+      nodes.searchPanel.style.display = "";
+
+      // remove any search highlights
+      active.cm.clearSearch();
+    }
+  });
+
+  nodes['find-text'].addEventListener( "keyup", function(e){
+    search();
+  });
+
+  const search = function(){
+    
+    let text = nodes['find-text'].value;
+    // console.info( text );
+    
+    if (text.length) active.cm.search(text);
+    else active.cm.clearSearch();
+
+  }
+
+  // --- /find and replace ---
 
   // TODO: revert
 

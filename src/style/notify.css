@@ -1,0 +1,35 @@
+
+.notifier-panel {
+  z-index: 1000;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.notifier-panel .notifier-message {
+  background: rgba( 255, 255, 255, .95 );
+  border-radius: 5px;
+  margin: 5px;
+  width: 15em;
+  min-height: 8em;
+  padding: .5em 1em;
+  transition: opacity .3s;
+  opacity: 0;
+  box-shadow: 0px 1px 4px #333;
+}
+
+.notifier-panel .notifier-title {
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.notifier-panel .notifier-message.warning {
+  background-color: pink;
+}
+
+.notifier-panel .notifier-message.alert {
+  background-color: lightblue;
+  color: white;
+}
+
+

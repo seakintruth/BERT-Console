@@ -58,6 +58,17 @@
   background: #fff;
 }
 
+/** 
+ * this node holds the editor and the search panel.  otherwise
+ * toggling the search panel slightly resizes the tab and status
+ * bars, which is annoying.
+ */
+.editor-container {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+}
+
 .editor-content-panel {
   flex-grow: 1;
   width: 100%;
@@ -78,6 +89,7 @@
   width: 100%;
   flex-direction: row;
   display: flex;
+  border-top: 1px dotted #ccc;
 }
 
 .editor-status-bar > div {
@@ -99,5 +111,20 @@
   justify-content: flex-start;
 }
 
+.editor-search-panel {
+  background: #eee;
+  border-top: 1px dotted #ccc;
+  width: 100%;
+  padding: .5em 1em;
+  display: none;
+}
 
+.editor-search-panel input[type=text] {
+  border: 1px solid #39f;
+  padding: .2em .2em;
+  outline: none;
+}
 
+.editor-search-panel * {
+  margin-right: .7em;
+}

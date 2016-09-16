@@ -10,10 +10,11 @@ const {Menu, MenuItem, dialog} = remote;
 
 // node modules
 const PubSub = require( "pubsub-js" );
-const Shell = require( "cmjs-shell" );
 const fs = require( "fs" );
 const path = require( "path" );
 const chokidar = window.require('chokidar');
+const Shell = require( "cmjs-shell" );
+//const Shell = require( "../../../constructr/cmjs-shell/shell.js" );
 
 // local modules
 const Splitter = require( "./splitter.js" );
@@ -21,6 +22,7 @@ const Settings = require( "./settings.js" );
 const PipeR = require( "./piper.js" );
 const Editor = require( "./editor.js" );
 const Utils = require( "./utils.js" );
+const Notifier = require( "./notify.js" );
 
 // globals
 let splitWindow;
@@ -43,6 +45,11 @@ chokidar.watch( USER_STYLESHEET_PATH ).on('change', (event, path) => {
 PubSub.subscribe( "focus-event", function( channel, owner ){
   focused = owner;
   updateFocusMessage();
+});
+
+PubSub.subscribe( "execute-block", function( channel, code ){
+  if( !code.endsWith( "\n" )) code = code + "\n";
+  shell.execute_block( code );
 });
 
 PubSub.subscribe( "editor-new-tab", function(){
@@ -286,6 +293,16 @@ var about_dialog = function () {
         },
         {
           role: 'selectall'
+        },
+         {
+          type: 'separator'
+        },
+        {
+          label: 'Find...',
+          accelerator: 'Ctrl+F',
+          click: function(){
+            editor.find();
+          }
         }
       ]
     },
@@ -546,9 +563,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   // that this is last.  
   updateUserStylesheet();
 
-  // this seems a bit fragile, perhaps these should be separate members 
   let layout = Settings.layout || {
-    // splitter1: [20, 80], 
     splitWindow: [50, 50]
   };
 
@@ -569,7 +584,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   splitWindow = new Splitter({ 
     node: document.body, 
     size: layout.splitWindow,
-    direction: Settings.layoutDirection || Splitter.prototype.Direction.VERTICAL 
+    direction: Settings.layoutDirection || Splitter.prototype.Direction.HORIZONTAL 
   });
 
   if( Settings.hide_editor ) splitWindow.setVisible( 0, false );
@@ -645,6 +660,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     event.returnValue = false;
     R.internal( ["hide"], "hide" );
   });
+
 
 });
 
