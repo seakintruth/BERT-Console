@@ -70,6 +70,13 @@ const Editor = function(opts){
 
     if( !active ) return;
 
+    if( findActive ){
+      search(true);
+    }
+    else {
+      active.cm.clearSearch();
+    }
+
     active.cm.on( "cursorActivity", function(){
       updatePosition();
     });
@@ -441,9 +448,17 @@ const Editor = function(opts){
     options.cm.setOption("matchBrackets", true);
 
     options.cm.setOption("extraKeys", {
+      Esc: function(cm){
+        if( findActive ) closeSearch();
+      },
       Tab: function(cm) {
         var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
         cm.replaceSelection(spaces);
+      },
+      F3: function(cm){
+        if( findActive ){
+          cm.next();
+        }
       }
     });
 
@@ -614,6 +629,9 @@ const Editor = function(opts){
 
   // --- find and replace ---
 
+  let lastSearch = null;
+  let findActive = false;
+
   /**
    * display and focus the search panel
    */
@@ -622,33 +640,45 @@ const Editor = function(opts){
     // if( nodes.searchPanel.style.display === "block" ) return;
     nodes.searchPanel.style.display = "block";
     nodes['find-text'].focus();
-    search();
+    findActive = true;
+    search(true);
 
+  };
+
+  const closeSearch = function(){
+    if( active ) active.cm.focus();
+    nodes.searchPanel.style.display = "";
+    active.cm.clearSearch();
+    findActive = false;
   };
 
   nodes['find-text'].addEventListener( "keydown", function(e){
     e.stopPropagation();
-    if( e.key === "Escape" ){
-      if( active ) active.cm.focus();
-      nodes.searchPanel.style.display = "";
-
-      // remove any search highlights
-      active.cm.clearSearch();
+    switch( e.key ){
+      case "Escape":
+        closeSearch();
+        break;
+      case "F3":
+        active.cm.next();
+        break;
     }
   });
 
   nodes['find-text'].addEventListener( "keyup", function(e){
+    e.stopPropagation();
     search();
   });
 
-  const search = function(){
-    
+  const search = function(force){
     let text = nodes['find-text'].value;
-    // console.info( text );
-    
-    if (text.length) active.cm.search(text);
-    else active.cm.clearSearch();
-
+    if( force || lastSearch !== text ){
+      if (text.length){
+        //active.cm.search("/\b" + text + "\b/i");
+        active.cm.search(text);
+      }
+      else active.cm.clearSearch();
+      lastSearch = text;
+    }
   }
 
   // --- /find and replace ---
