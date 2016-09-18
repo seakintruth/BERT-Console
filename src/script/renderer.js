@@ -250,6 +250,10 @@ var about_dialog = function () {
           click: function(){ editor.saveAs(); }
         },
         {
+          label: 'Revert',
+          click: function(){ editor.revert(); }
+        },
+        {
           label: 'Close',
           accelerator: 'CmdOrCtrl+W',
           click: function(){ editor.close(); }
@@ -298,10 +302,17 @@ var about_dialog = function () {
           type: 'separator'
         },
         {
-          label: 'Find...',
+          label: 'Find',
           accelerator: 'Ctrl+F',
           click: function(){
             editor.find();
+          }
+        },
+        {
+          label: 'Replace',
+          accelerator: 'Ctrl+H',
+          click: function(){
+            editor.find(true);
           }
         }
       ]

@@ -106,7 +106,24 @@ const Editor = function(opts){
       <div id='container' class='editor-container'>
         <div id='contentPanel' class='editor-content-panel'></div>
         <div id='searchPanel' class='editor-search-panel'>
-          <label for='find-text'>Find:</label><input type='text' name='find-text' id='find-text'/>
+          <div id='find-row'>
+            <input type='text' name='find-text' id='find-text' placeholder='Find'/>
+            <div class='checkbox' title="Case Sensitive">
+              <input type='checkbox' id='find-case-sensitive'/><label for='find-case-sensitive'></label>
+            </div>
+            <div class='checkbox' title="Whole Word">
+              <input type='checkbox' id='find-whole-word'/><label for='find-whole-word'></label>
+            </div>
+            <div class='checkbox' title="Regex">
+              <input type='checkbox' id='find-regex'/><label for='find-regex'></label>
+            </div>
+            <button id='find-previous'></button>
+            <button id='find-next'></button>
+          </div>
+          <div id='replace-row'>
+            <div class='spacer'></div>
+            <input type='text' name='replace-text' id='replace-text' placeholder='Replace'/>
+          </div>
         </div>
       </div>
       <div id='statusBar' class='editor-status-bar'>
@@ -181,12 +198,7 @@ const Editor = function(opts){
     if( active ) active.cm.focus();
   };
 
-  let closeEditor = function(index){
-
-    let tab = tabs[index];
-    let editor = editors[index];
-
-    let is_active = tab.classList.contains( "active" );
+  let querySave = function( editor ){
 
     if( editor.dirty ){
       let rslt = dialog.showMessageBox({
@@ -200,12 +212,25 @@ const Editor = function(opts){
       });
       switch( rslt ){
       case 2: // cancel
-        return;
+        return "cancel";
       case 0: // save
         save(editor);
+        return "saved";
       }
 
     }    
+    return "not saved"; // don't save
+
+  }
+
+  let closeEditor = function(index){
+
+    let tab = tabs[index];
+    let editor = editors[index];
+
+    let is_active = tab.classList.contains( "active" );
+
+    if( "cancel" === querySave( editor )) return;
 
     tab.parentNode.removeChild( tab );
     tabs.splice( index, 1 );
@@ -531,6 +556,23 @@ const Editor = function(opts){
     addEditor();
   };
 
+  this.revert = function(){
+
+    return new Promise( function( resolve, reject ){
+      fs.readFile( active.path, { encoding: 'utf8' }, function( err, contents ){
+        if( err ){
+          PubSub.publish( "file-open-error", err );
+        }
+        else {
+          active.cm.getDoc().setValue( contents );
+          markDirty(false);
+        }
+        resolve();
+      });
+    });
+
+  }
+
   this.close = function(){
 
     for( let i = 0; i< editors.length; i++ ){
@@ -631,18 +673,34 @@ const Editor = function(opts){
 
   let lastSearch = null;
   let findActive = false;
+  let replaceActive = false;
+
+  nodes.searchPanel.addEventListener( "click", function(e){
+    if( e.target.type === "checkbox" ){
+      e.stopPropagation();
+      search(true);
+    }
+    else if( e.target.id === "find-previous" ){
+      e.stopPropagation();
+      active.cm.next(true);
+    }
+    else if( e.target.id === "find-next" ){
+      e.stopPropagation();
+      active.cm.next();
+    }
+  });
 
   /**
-   * display and focus the search panel
+   * display and focus the search panel; 
+   * optionally show the "replace" box.
    */
-  this.find = function(){
-
-    // if( nodes.searchPanel.style.display === "block" ) return;
+  this.find = function( replace ){
     nodes.searchPanel.style.display = "block";
     nodes['find-text'].focus();
     findActive = true;
+    replaceActive = replace;
+    nodes['replace-row'].style.display = replace ? "block" : "none";    
     search(true);
-
   };
 
   const closeSearch = function(){
@@ -653,18 +711,20 @@ const Editor = function(opts){
   };
 
   nodes['find-text'].addEventListener( "keydown", function(e){
-    e.stopPropagation();
     switch( e.key ){
       case "Escape":
+        e.stopPropagation();
         closeSearch();
         break;
       case "F3":
+        e.stopPropagation();
         active.cm.next();
         break;
     }
   });
 
   nodes['find-text'].addEventListener( "keyup", function(e){
+    
     e.stopPropagation();
     search();
   });
@@ -673,6 +733,22 @@ const Editor = function(opts){
     let text = nodes['find-text'].value;
     if( force || lastSearch !== text ){
       if (text.length){
+
+        if( nodes['find-regex'].checked ){
+          console.info( "REX" );
+        }
+        else {
+          let rex = false;
+          if( nodes['find-whole-word'].checked ){
+            rex = true;
+            text = "/\\b" + text + "\\b/";
+          }
+          if( !nodes['find-case-sensitive'].checked ){
+            if( !rex ) text = "/" + text + "/";
+            text = text + "i";
+          }
+        }
+
         //active.cm.search("/\b" + text + "\b/i");
         active.cm.search(text);
       }

@@ -17,6 +17,10 @@
   background: #eee;
   display: flex;
   flex-direction: row;
+  /*
+  border-bottom: 1px solid #57a7bf;
+  overflow: visible;
+  */
 }
 
 .editor-tab-bar .tab {
@@ -24,6 +28,14 @@
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
+  /*
+  top: 1px;
+  position: relative;
+  */
+  white-space: nowrap;
+  border-width: 1px;
+  border-style: solid; 
+  border-color: rgba(0,0,0,0);
 }
 
 .editor-tab-bar .tab .tab-x:after {
@@ -56,12 +68,16 @@
 
 .editor-tab-bar .tab.active {
   background: #fff;
+  /*
+  border-color: #57a7bf;
+  border-bottom-color: #fff;
+  */
 }
 
 /** 
  * this node holds the editor and the search panel.  otherwise
  * toggling the search panel slightly resizes the tab and status
- * bars, which is annoying.
+ * bars, which is irritating.
  */
 .editor-container {
   display: flex;
@@ -81,8 +97,9 @@
   left: 0px;
   bottom: 0px;
   right: 0px;
-  background: red;
 }
+
+/* --- status bar --- */
 
 .editor-status-bar {
   background: #eee;
@@ -111,20 +128,130 @@
   justify-content: flex-start;
 }
 
+/* --- search panel --- */
+
 .editor-search-panel {
   background: #eee;
   border-top: 1px dotted #ccc;
   width: 100%;
-  padding: .5em 1em;
+  padding: .5em 2em;
   display: none;
 }
 
-.editor-search-panel input[type=text] {
-  border: 1px solid #39f;
-  padding: .2em .2em;
-  outline: none;
+.editor-search-panel #replace-row {
+  display: none;
 }
 
-.editor-search-panel * {
-  margin-right: .7em;
+.editor-search-panel .spacer {
+  height: .33em;
+}
+
+/* textbox */
+
+.editor-search-panel input[type=text] {
+  border: 1px solid #39f;
+  height: 25px;
+  padding-left: .5em;
+  width: 22em;
+  outline: none;
+  line-height: 1;
+}
+
+/* buttons */
+
+.editor-search-panel button {
+  border: 1px solid #ccc;
+  background: #eee;
+  overflow: hidden;
+  height: 25px;
+  width: 25px;
+  margin-left: .2em;
+  text-align: center;
+  font-family: 'Material Icons';
+  text-rendering: optimizeLegibility;
+  line-height: 0em;
+  position: relative;
+  top: 1px;
+}
+
+.editor-search-panel button#find-previous:after {
+  content: "arrow_back";
+  position: relative;
+  left: -1px;
+}
+
+.editor-search-panel button#find-next:after {
+  content: "arrow_forward";
+}
+
+.editor-search-panel button:hover {
+  border: 1px solid #39f;
+  outline: 0;
+}
+
+.editor-search-panel button:active {
+  background: #fff;
+  outline: 0;
+}
+
+.editor-search-panel div + button {
+  margin-left: 1em;
+}
+
+/* checkboxes */
+
+.editor-search-panel input[type=checkbox] {
+  visibility: hidden;
+  width: 0;
+}
+
+.editor-search-panel .checkbox {
+  margin-left: .2em;
+	position: relative;
+  cursor: pointer;
+  display: inline-block;
+  height: 25px;
+  width: 25px;
+  border: 0;
+}
+
+.editor-search-panel .checkbox label {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: -1px;
+  left: 0;
+  border: 1px solid #ccc;
+  background: #ddd;
+  overflow: hidden;
+}
+
+.editor-search-panel .checkbox input[type=checkbox] + label:after {
+  position: absolute;
+  margin: 0 auto;
+  top: 1px;
+  width: 100%;
+  text-align: center;
+}
+
+.editor-search-panel .checkbox input[type=checkbox]#find-regex + label:after {
+  content: '.*';
+}
+
+.editor-search-panel .checkbox input[type=checkbox]#find-whole-word + label:after {
+  content: '[...]';
+}
+
+.editor-search-panel .checkbox input[type=checkbox]#find-case-sensitive + label:after {
+  content: 'Ab';
+  top: 2px;
+}
+
+.editor-search-panel .checkbox input[type=checkbox]:checked + label {
+  border-color: #39f;
+  background: #eee;
+}
+
+.editor-search-panel input + div.checkbox {
+  margin-left: 1em;
 }
