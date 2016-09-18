@@ -729,6 +729,10 @@ const Editor = function(opts){
     search();
   });
 
+  const escapeRex = function(string){
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); 
+  }
+
   const search = function(force){
     let text = nodes['find-text'].value;
     if( force || lastSearch !== text ){
@@ -741,15 +745,14 @@ const Editor = function(opts){
           let rex = false;
           if( nodes['find-whole-word'].checked ){
             rex = true;
-            text = "/\\b" + text + "\\b/";
+            text = `/\b${escapeRex(text)}\b/`;
           }
           if( !nodes['find-case-sensitive'].checked ){
-            if( !rex ) text = "/" + text + "/";
+            if( !rex ) text = `/${escapeRex(text)}/`;
             text = text + "i";
           }
         }
 
-        //active.cm.search("/\b" + text + "\b/i");
         active.cm.search(text);
       }
       else active.cm.clearSearch();

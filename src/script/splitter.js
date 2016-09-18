@@ -50,10 +50,10 @@ const mousedown = function(event){
     let size;
 
     if( this.vertical ){
-      size = Math.round( 1000 * event.offsetY / this.node.offsetHeight ) / 10;
+      size = Math.round( 1000 * event.offsetY / ( this.node.offsetHeight )) / 10;
     }
     else {
-      size = Math.round( 1000 * event.offsetX / this.node.offsetWidth ) / 10;
+      size = Math.round( 1000 * event.offsetX / ( this.node.offsetWidth )) / 10;
     }
 
     if( Math.abs(this.size[0] - size) >= Splitter.prototype.MINIMUM_STEP ){

@@ -118,6 +118,9 @@
 
 .editor-status-bar > div > div {
   padding: .25em 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .editor-status-bar .right {

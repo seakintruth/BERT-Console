@@ -659,7 +659,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }
 
   // console.info( "pipename", pipename );
-  R.init({ pipename: pipename });
+  if( !process.env.BERT_DEV_NO_PIPE )  
+    R.init({ pipename: pipename });
 
   updateThemes();
   updateMenu();
