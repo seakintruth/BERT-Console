@@ -221,8 +221,10 @@
 }
 
 .editor-search-panel button#replace-all:after {
-  content: "++";
-  left: -2px;
+  font-family: 'Material Icons';
+  content: "all_inclusive";
+  top: 1px;
+  left: -1px;
   position: relative;
 }
 

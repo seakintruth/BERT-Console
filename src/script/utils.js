@@ -96,7 +96,7 @@ Utils.updateMenu = function( Settings, template ){
       }
       else if( template.id ){
         template.click = function( item, focusedWindow ){
-          PubSub.publish( "menu-click", [ template.id, template, item, focusedWindow ]);
+          PubSub.publish( "menu-click", { id: template.id, template: template, item: item, focusedWindow: focusedWindow });
         }
       }
     }

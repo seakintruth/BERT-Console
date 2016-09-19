@@ -559,9 +559,11 @@ var about_dialog = function () {
 
 PubSub.subscribe( "menu-click", function( channel, opts ){
 
-  switch( opts[0] ){
+  // opts: { id, template, item, focusedWindow }
+
+  switch( opts.id ){
   case "toggle-developer":
-    if (focusedWindow) focusedWindow.webContents.toggleDevTools()
+    if (opts.focusedWindow) opts.focusedWindow.webContents.toggleDevTools()
     break;
 
   case "user-stylesheet": editor.open( USER_STYLESHEET_PATH ); break;
@@ -585,9 +587,9 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     break;
 
   case "reload": 
-    if (focusedWindow && Settings.allow_reloading){
+    if (opts.focusedWindow && Settings.allow_reloading){
       global.allowReload = true;
-      focusedWindow.reload()
+      opts.focusedWindow.reload()
     }
     break;
 

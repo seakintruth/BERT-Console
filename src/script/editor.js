@@ -677,10 +677,11 @@ const Editor = function(opts){
    */
   this.find = function( replace ){
     nodes.searchPanel.style.display = "block";
-    nodes['find-text'].focus();
     findActive = true;
     replaceActive = replace;
     nodes['replace-row'].style.display = replace ? "block" : "none";    
+    if( replace ) nodes['replace-text'].focus();
+    else nodes['find-text'].focus();
     search(true);
   };
 
