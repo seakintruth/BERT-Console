@@ -613,7 +613,6 @@ let updateUserStylesheet = function(){
 let updateMenu = function(){  
 
   let node, template = MenuTemplate;
-  console.info( template );
 
   Utils.updateSettings( Settings, template );  
 
@@ -675,6 +674,7 @@ let updateMenu = function(){
     });
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
   });
 
 };

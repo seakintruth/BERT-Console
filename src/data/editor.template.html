@@ -7,26 +7,34 @@
   <div id='container' class='editor-container'>
     <div id='contentPanel' class='editor-content-panel'></div>
     <div id='searchPanel' class='editor-search-panel'>
-      <div id='find-row'>
-        <input type='text' name='find-text' id='find-text' placeholder='Find'/>
-        <div class='checkbox' title="Case Sensitive">
-          <input type='checkbox' id='find-case-sensitive'/><label for='find-case-sensitive'></label>
+
+      <div id='find-row' class='row'>
+        <div>
+          <input type='text' name='find-text' id='find-text' placeholder='Find'/>
+          <div class='checkbox' title="Case Sensitive">
+            <input type='checkbox' id='find-case-sensitive'/><label for='find-case-sensitive'></label>
+          </div>
+          <div class='checkbox' title="Whole Word">
+            <input type='checkbox' id='find-whole-word'/><label for='find-whole-word'></label>
+          </div>
+          <div class='checkbox' title="Regex">
+            <input type='checkbox' id='find-regex'/><label for='find-regex'></label>
+          </div>
+          <button id='find-previous' title='Find Previous'></button>
+          <button id='find-next' title='Find Next'></button>
+          <div class='flex-spacer'></div>
+          <button id='close-search-panel' title='Close Search Panel' tabindex='-1'></button>
         </div>
-        <div class='checkbox' title="Whole Word">
-          <input type='checkbox' id='find-whole-word'/><label for='find-whole-word'></label>
-        </div>
-        <div class='checkbox' title="Regex">
-          <input type='checkbox' id='find-regex'/><label for='find-regex'></label>
-        </div>
-        <button id='find-previous' title='Find Previous'></button>
-        <button id='find-next' title='Find Next'></button>
-        <div class='flex-spacer'></div>
-        <button id='close-search-panel' title='Close Search Panel' tabindex='-1'></button>
       </div>
-      <div id='replace-row'>
-        <div class='spacer'></div>
-        <input type='text' name='replace-text' id='replace-text' placeholder='Replace'/>
+
+      <div id='replace-row' class='row'>
+        <div>
+          <input type='text' name='replace-text' id='replace-text' placeholder='Replace'/>
+          <button id='replace-one' title='Replace One'></button>
+          <button id='replace-all' title='Replace All'></button>
+        </div>
       </div>
+
     </div>
   </div>
   <div id='statusBar' class='editor-status-bar'>

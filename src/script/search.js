@@ -97,21 +97,6 @@ module.exports.apply = function(CM){
     }
   }
 
-  CM.search = function(q){
-    var state = getSearchState(CM);
-    startSearch( CM, state, q );
-    state.posFrom = state.posTo = CM.getCursor();
-    findNext(CM, false);//rev);
-  };
-
-  CM.next = function(rev){
-    doSearch( CM, rev, true, true );
-  };
-
-  CM.clearSearch = function(){
-    clearSearch( CM );
-  };
-
   function doSearch(cm, rev, persistent, immediate) {
     var state = getSearchState(cm);
     if (state.query) return findNext(cm, rev);
@@ -235,6 +220,44 @@ module.exports.apply = function(CM){
       });
     });
   }
+
+  // using the commands API means we can't pass arguments, so 
+  // we'll attach these directly in a wrapper object
+
+  CM.find = {
+
+    search: function( q ){
+      var state = getSearchState(CM);
+      startSearch( CM, state, q );
+      state.posFrom = state.posTo = CM.getCursor("anchor");
+      findNext(CM, false);
+    },
+
+    next: function(rev){
+      doSearch( CM, rev, true, true );
+    },
+
+    clear: function(){
+      clearSearch( CM );
+    },
+
+    replace: function( query, text ){
+      let doc = CM.getDoc();
+      let sel = doc.getSelection();
+      let Q = parseQuery(query);
+      if( sel.match( Q )){
+        doc.replaceSelection(parseString(text));
+        this.clear();
+        this.search(query);
+      }
+    },
+
+    replaceAll: function( query, text ){
+      replaceAll(CM, parseQuery(query), parseString(text));
+    }
+
+  };
+
 
   /*
   CodeMirror.commands.find = function(cm) {clearSearch(cm); doSearch(cm);};

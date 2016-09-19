@@ -76,7 +76,7 @@ const Editor = function(opts){
       search(true);
     }
     else {
-      active.cm.clearSearch();
+      active.cm.find.clear();
     }
 
     active.cm.on( "cursorActivity", function(){
@@ -444,9 +444,14 @@ const Editor = function(opts){
         var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
         cm.replaceSelection(spaces);
       },
+      "Shift-F3": function(cm){
+        if( findActive ){
+          cm.find.next(true);
+        }
+      },
       F3: function(cm){
         if( findActive ){
-          cm.next();
+          cm.find.next();
         }
       }
     });
@@ -646,11 +651,19 @@ const Editor = function(opts){
     }
     else if( e.target.id === "find-previous" ){
       e.stopPropagation();
-      active.cm.next(true);
+      active.cm.find.next(true);
     }
     else if( e.target.id === "find-next" ){
       e.stopPropagation();
-      active.cm.next();
+      active.cm.find.next();
+    }
+    else if( e.target.id === "replace-one" ){
+      e.stopPropagation();
+      replace();
+    }
+    else if( e.target.id === "replace-all" ){
+      e.stopPropagation();
+      replace(true);
     }
     else if( e.target.id === "close-search-panel" ){
       e.stopPropagation();
@@ -674,7 +687,7 @@ const Editor = function(opts){
   const closeSearch = function(){
     if( active ) active.cm.focus();
     nodes.searchPanel.style.display = "";
-    active.cm.clearSearch();
+    active.cm.find.clear();
     findActive = false;
   };
 
@@ -686,7 +699,7 @@ const Editor = function(opts){
         break;
       case "F3":
         e.stopPropagation();
-        active.cm.next();
+        active.cm.find.next(e.shiftKey);
         break;
     }
   });
@@ -701,35 +714,47 @@ const Editor = function(opts){
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); 
   }
 
-  const search = function(force){
+  const parseQuery = function(){
     let text = nodes['find-text'].value;
+    if (text.length){
+
+      // for regex, leave as-is.  for non 
+      // regex, optionally (default) pass as an
+      // icase regex; optionally add \bs.
+
+      if( !nodes['find-regex'].checked )
+      {
+        let rex = false;
+        if( nodes['find-whole-word'].checked ){
+          rex = true;
+          text = `/\\b${escapeRex(text)}\\b/`;
+        }
+        if( !nodes['find-case-sensitive'].checked ){
+          if( !rex ) text = `/${escapeRex(text)}/`;
+          text = text + "i";
+        }
+      }
+    }
+    return text;
+  };
+
+  const replace = function( all ){
+    let query = parseQuery();
+    let rep = nodes['replace-text'].value;
+    if( all ) active.cm.find.replaceAll( query, rep );
+    else active.cm.find.replace( query, rep );
+  };
+
+  const search = function(force){
+    let text = parseQuery();
     if( force || lastSearch !== text ){
       if (text.length){
-
-        // for regex, leave as-is.  for non 
-        // regex, optionally (default) pass as an
-        // icase regex; optionally add \bs.
-
-        if( !nodes['find-regex'].checked )
-        {
-          let rex = false;
-          if( nodes['find-whole-word'].checked ){
-            rex = true;
-            text = `/\\b${escapeRex(text)}\\b/`;
-          }
-          if( !nodes['find-case-sensitive'].checked ){
-            if( !rex ) text = `/${escapeRex(text)}/`;
-            text = text + "i";
-          }
-        }
-
-        // console.info("T", text);
-        active.cm.search(text);
+        active.cm.find.search(text);
       }
-      else active.cm.clearSearch();
+      else active.cm.find.clear();
       lastSearch = text;
     }
-  }
+  };
 
   // --- /find and replace ---
 

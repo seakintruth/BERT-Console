@@ -145,13 +145,14 @@
   display: none;
 }
 
-.editor-search-panel > div {
-  display: flex;
-  flex-direction: row;
+.editor-search-panel div.row + div.row {
+  margin-top: .4em;
 }
 
-.editor-search-panel .spacer {
-  height: .33em;
+.editor-search-panel div.row > div {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
 }
 
 .editor-search-panel input[type=text] {
@@ -170,16 +171,17 @@
   width: 25px;
   border: 1px solid #ccc;
   display: inline-block;
-  margin-left: .3em;
   background: #eee;
+  margin-right: .35em;
 }
 
-.editor-search-panel input[type=text] + div, .editor-search-panel div + button {
+.editor-search-panel input[type=text] + div, 
+  .editor-search-panel input[type=text] + button, 
+  .editor-search-panel div + button {
   margin-left: 1em;
 }
 
 .editor-search-panel button {
-  font-family: 'Material Icons';
   text-rendering: optimizeLegibility;
 }
 
@@ -198,17 +200,30 @@
 }
 
 .editor-search-panel button#close-search-panel:after {
+  font-family: 'Material Icons';
   content: "close";
 }
 
 .editor-search-panel button#find-previous:after {
+  font-family: 'Material Icons';
   content: "arrow_back";
   position: relative;
   left: -1px;
 }
 
 .editor-search-panel button#find-next:after {
+  font-family: 'Material Icons';
   content: "arrow_forward";
+}
+
+.editor-search-panel button#replace-one:after {
+  content: "1";
+}
+
+.editor-search-panel button#replace-all:after {
+  content: "++";
+  left: -2px;
+  position: relative;
 }
 
 .editor-search-panel button:hover {
@@ -223,7 +238,7 @@
 
 .editor-search-panel .checkbox input[type=checkbox]:checked + label {
   border-color: #39f;
-  background: #eee;
+  background: #fff;
 }
 
 .editor-search-panel input[type=checkbox] + label:after {
