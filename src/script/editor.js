@@ -117,8 +117,10 @@ const Editor = function(opts){
             <div class='checkbox' title="Regex">
               <input type='checkbox' id='find-regex'/><label for='find-regex'></label>
             </div>
-            <button id='find-previous'></button>
-            <button id='find-next'></button>
+            <button id='find-previous' title='Find Previous'></button>
+            <button id='find-next' title='Find Next'></button>
+            <div class='flex-spacer'></div>
+            <button id='close-search-panel' title='Close Search Panel' tabindex='-1'></button>
           </div>
           <div id='replace-row'>
             <div class='spacer'></div>
@@ -669,7 +671,7 @@ const Editor = function(opts){
   this.save = save;
   this.saveAs = saveAs;
 
-  // --- find and replace ---
+  // --- find and replace (aka search panel) ---
 
   let lastSearch = null;
   let findActive = false;
@@ -687,6 +689,10 @@ const Editor = function(opts){
     else if( e.target.id === "find-next" ){
       e.stopPropagation();
       active.cm.next();
+    }
+    else if( e.target.id === "close-search-panel" ){
+      e.stopPropagation();
+      closeSearch();
     }
   });
 
@@ -738,14 +744,16 @@ const Editor = function(opts){
     if( force || lastSearch !== text ){
       if (text.length){
 
-        if( nodes['find-regex'].checked ){
-          console.info( "REX" );
-        }
-        else {
+        // for regex, leave as-is.  for non 
+        // regex, optionally (default) pass as an
+        // icase regex; optionally add \bs.
+
+        if( !nodes['find-regex'].checked )
+        {
           let rex = false;
           if( nodes['find-whole-word'].checked ){
             rex = true;
-            text = `/\b${escapeRex(text)}\b/`;
+            text = `/\\b${escapeRex(text)}\\b/`;
           }
           if( !nodes['find-case-sensitive'].checked ){
             if( !rex ) text = `/${escapeRex(text)}/`;
@@ -753,6 +761,7 @@ const Editor = function(opts){
           }
         }
 
+        // console.info("T", text);
         active.cm.search(text);
       }
       else active.cm.clearSearch();
