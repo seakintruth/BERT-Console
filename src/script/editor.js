@@ -680,8 +680,12 @@ const Editor = function(opts){
     findActive = true;
     replaceActive = replace;
     nodes['replace-row'].style.display = replace ? "block" : "none";    
-    if( replace ) nodes['replace-text'].focus();
-    else nodes['find-text'].focus();
+
+    let node = replace ? nodes['replace-text'] : nodes['find-text'];
+
+    node.select();
+    node.focus();
+
     search(true);
   };
 
