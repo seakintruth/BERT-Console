@@ -14,6 +14,8 @@ const Utils = require( './utils.js' );
 const Menu = remote.Menu;
 const Search = require( "./search.js" );
 
+const htmlTemplate = require( "../data/editor.template.html" );
+
 // define this in a usable format, we'll unpack.
 // FIXME: external data file
 
@@ -99,47 +101,7 @@ const Editor = function(opts){
   // it as-is.  better would be to use a file, or let webpack
   // know if can compress whitespace.
 
-  let nodes = NodeMap.parse(`
-
-    <div id='editorPanel' class='editor-panel'>
-      <div id='tabBar' class='editor-tab-bar'></div>
-      <div id='container' class='editor-container'>
-        <div id='contentPanel' class='editor-content-panel'></div>
-        <div id='searchPanel' class='editor-search-panel'>
-          <div id='find-row'>
-            <input type='text' name='find-text' id='find-text' placeholder='Find'/>
-            <div class='checkbox' title="Case Sensitive">
-              <input type='checkbox' id='find-case-sensitive'/><label for='find-case-sensitive'></label>
-            </div>
-            <div class='checkbox' title="Whole Word">
-              <input type='checkbox' id='find-whole-word'/><label for='find-whole-word'></label>
-            </div>
-            <div class='checkbox' title="Regex">
-              <input type='checkbox' id='find-regex'/><label for='find-regex'></label>
-            </div>
-            <button id='find-previous' title='Find Previous'></button>
-            <button id='find-next' title='Find Next'></button>
-            <div class='flex-spacer'></div>
-            <button id='close-search-panel' title='Close Search Panel' tabindex='-1'></button>
-          </div>
-          <div id='replace-row'>
-            <div class='spacer'></div>
-            <input type='text' name='replace-text' id='replace-text' placeholder='Replace'/>
-          </div>
-        </div>
-      </div>
-      <div id='statusBar' class='editor-status-bar'>
-        <div class='left'>
-          <div class='message' id='status-message'></div>
-        </div>
-        <div class='right'>
-          <div class='position' id='statusPosition'></div>
-          <div class='language' id='statusLanguage'></div>
-        </div>
-      </div>
-    </div>
-
-  `, opts.node );
+  let nodes = NodeMap.parse( htmlTemplate, opts.node );
 
   if( Settings.editor_hide_status_bar ) nodes.statusBar.style.display = "none";
 

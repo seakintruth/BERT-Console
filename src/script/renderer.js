@@ -117,7 +117,7 @@ window.addEventListener( "keydown", function(e){
       e.preventDefault();
       editor.selectEditor({ delta: 1 });
     }
-    else if( e.code === "KeyE" ){
+    else if( e.code === "KeyE" && !e.shiftKey ){
       e.stopPropagation();
       e.preventDefault();
       if( focused === "editor" ) shell.focus();
@@ -254,7 +254,7 @@ var about_dialog = function () {
           click: function(){ editor.revert(); }
         },
         {
-          label: 'Close',
+          label: 'Close Document',
           accelerator: 'CmdOrCtrl+W',
           click: function(){ editor.close(); }
         },
@@ -262,7 +262,8 @@ var about_dialog = function () {
           type: 'separator'
         },
         {
-          role: 'quit'
+          role: 'quit',
+          label: 'Close BERT Console'
         }
       ]
     },
@@ -404,8 +405,12 @@ var about_dialog = function () {
             {
               label: "Wrap Long Lines",
               type: "checkbox",
-              checked: !!Settings.shell_wrap_on,
-              click: function(item){ Settings.shell_wrap_on = !item.checked; }
+              checked: !!Settings.shell_wrap,
+              click: function(item){ 
+                Settings.shell_wrap = item.checked; 
+                shell.setOption( "lineWrapping", Settings.shell_wrap );
+                shell.refresh();
+              }
             },
           ]
         },
@@ -423,10 +428,23 @@ var about_dialog = function () {
           label: "Developer",
           submenu: [
             {
+              label: 'Allow Reloading',
+              type: 'checkbox',
+              checked: !!Settings.allow_reloading,
+              click: function(item){
+                Settings.allow_reloading = item.checked;
+                item.menu.items.forEach( function( item ){
+                  if( item.id === "reload" ) item.enabled = Settings.allow_reloading;
+                });
+              }
+            },
+            {
+              id: 'reload',
               label: 'Reload',
               accelerator: 'CmdOrCtrl+R',
+              enabled: Settings.allow_reloading,
               click (item, focusedWindow) {
-                if (focusedWindow){
+                if (focusedWindow && Settings.allow_reloading){
                   global.allowReload = true;
                   focusedWindow.reload()
                 }
@@ -621,6 +639,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
     }
   });
 
+  shell.setOption( "lineWrapping", !!Settings.shell_wrap );
+
   const shellContextMenu = Menu.buildFromTemplate([
     { label: 'Select All', click: function(){
       shell.select_all();
@@ -661,6 +681,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
   // console.info( "pipename", pipename );
   if( !process.env.BERT_DEV_NO_PIPE )  
     R.init({ pipename: pipename });
+
+  //console.info( "BH", process.env.BERT_HOME );
 
   updateThemes();
   updateMenu();

@@ -1,5 +1,6 @@
 
 var webpack = require('webpack');
+
 module.exports = {
   entry: {
   app: ['webpack/hot/dev-server', './src/script/renderer.js'],
@@ -16,7 +17,8 @@ devServer: {
 },
 module: {
  loaders: [
-   { test: /\.css$/, loader: 'style-loader!css-loader' }
+   { test: /\.css$/, loader: 'style-loader!css-loader' },
+   { test: /\.template.html$/, loader: 'raw' }
  ]
 },
  plugins: [
