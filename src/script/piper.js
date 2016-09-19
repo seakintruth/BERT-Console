@@ -388,6 +388,7 @@ const PipeR = function () {
   };
 
   let client;
+  this.initialized = false;
 
   this.init = function(opts){
 
@@ -423,6 +424,8 @@ const PipeR = function () {
       console.log('disconnected from pipe (xmit)');
       this.emit( "pipe-closed" );
     });
+
+    this.initialized = true;
   }
 
   /**

@@ -24,6 +24,9 @@ const Editor = require( "./editor.js" );
 const Utils = require( "./utils.js" );
 const Notifier = require( "./notify.js" );
 
+const Resize = require( "./resize-events.js" );
+const MenuTemplate = require( "../data/menu.json" );
+
 // globals
 let splitWindow;
 let shell, editor;
@@ -70,13 +73,15 @@ R.on( "pipe-closed", function(){
   remote.getCurrentWindow().close();
 });
 
-let updateFocusMessage = function(){
-
+const setStatusMessage = function( message ){
   if( !statusMessage ) statusMessage = document.getElementById( "status-message" );
   if( !statusMessage ) return;
+  statusMessage.textContent = message;
+}
+
+let updateFocusMessage = function(){
 
   let message;
-
   if(!(splitWindow.visible[0] && splitWindow.visible[1] )) message = "";
   else {
     message = ( focused === "editor" ? "Editor" : "Shell" ) + " has focus";
@@ -84,25 +89,81 @@ let updateFocusMessage = function(){
       message += " (use Ctrl+E to switch)";
     }
   }
-  
-  statusMessage.textContent = message;
+  setStatusMessage( message );  
 
 };
 
 PubSub.subscribe( "splitter-drag", function( channel, splitter ){
-  if( !statusMessage ) statusMessage = document.getElementById( "status-message" );
-  if( !statusMessage ) return;
-  statusMessage.innerText = `Layout: ${splitter.size[0].toFixed(1)}% / ${splitter.size[1].toFixed(1)}%`;
+  setStatusMessage(
+    `Layout: ${splitter.size[0].toFixed(1)}% / ${splitter.size[1].toFixed(1)}%` );
 });
 
 PubSub.subscribe( "settings-change", function( channel, update ){
-  // console.info( "SC", update );
+
+  switch( update.key ){
+  case "hide_shell":
+    splitWindow.setVisible( 1, !Settings.hide_shell );
+    if( !Settings.hide_shell ) shell.refresh();
+    updateFocusMessage();
+    resizeShell(true);
+    break;
+
+  case "hide_editor":
+    splitWindow.setVisible( 0, !Settings.hide_editor );
+    if( !Settings.hide_editor ) editor.refresh();
+    updateFocusMessage();
+    resizeShell(true);
+    break;  
+
+  case "layout_vertical":
+    updateLayout( Settings.layout_vertical ? 
+      Splitter.prototype.Direction.VERTICAL : 
+      Splitter.prototype.Direction.HORIZONTAL, true  );
+    break;
+
+  case "auto_resize":
+    if( Settings.auto_resize ) resizeShell();
+    break;
+
+  case "allow_reloading":
+
+    // this is overkill here, because all we need to do 
+    // is enable the reload item
+
+    updateMenu();
+    break;
+
+  case "shell_wrap":
+    shell.setOption( "lineWrapping", Settings.shell_wrap );
+    shell.refresh();
+    break;
+
+  default:
+    console.info( "unhandled settings change", update );
+    break;
+  }
+});
+
+let lastShellSize = -1;
+
+const resizeShell = function(){
+  if( Settings.auto_resize ){
+    let w = shell.get_width_in_chars();
+    if( lastShellSize === w ) return;
+    lastShellSize = Math.max( 10, w );
+    R.internal( ["set-console-width", lastShellSize], "set-console-width" );
+  }
+}
+
+PubSub.subscribe( "window-resize", function( channel ){
+  resizeShell();
 });
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
   Settings.layout = {
     splitWindow: splitWindow.size.slice(0)
   }
+  resizeShell();
 });
 
 window.addEventListener( "keydown", function(e){
@@ -219,7 +280,7 @@ var about_dialog = function () {
 
 // menu
 
-
+/*
   let menuTemplate = [
     {
       label: "File", 
@@ -288,11 +349,11 @@ var about_dialog = function () {
         {
           role: 'paste'
         },
-        /*
+        / *
         {
           role: 'pasteandmatchstyle'
         },
-        */
+        * /
         {
           role: 'delete'
         },
@@ -333,6 +394,7 @@ var about_dialog = function () {
             Settings.hide_editor = !item.checked;
             if( item.checked ) editor.refresh();
             updateFocusMessage();
+            resizeShell(true);
           }
         },
         {
@@ -346,6 +408,7 @@ var about_dialog = function () {
             Settings.hide_shell = !item.checked;
             shell.refresh();
             updateFocusMessage();
+            resizeShell(true);
           }
         },
          {
@@ -401,6 +464,15 @@ var about_dialog = function () {
             {
               id: 'shell_theme',
               label: "Theme"
+            },
+            {
+              label: "Update Console Width on Resize",
+              type: "checkbox",
+              checked: !!Settings.auto_resize,
+              click: function(item){
+                Settings.auto_resize = item.checked;
+                if( item.checked ) resizeShell();
+              }
             },
             {
               label: "Wrap Long Lines",
@@ -483,6 +555,48 @@ var about_dialog = function () {
     }
 
   ];
+*/
+
+PubSub.subscribe( "menu-click", function( channel, opts ){
+
+  switch( opts[0] ){
+  case "toggle-developer":
+    if (focusedWindow) focusedWindow.webContents.toggleDevTools()
+    break;
+
+  case "user-stylesheet": editor.open( USER_STYLESHEET_PATH ); break;
+
+  case "file-new": editor.newFile(); break;
+  case "file-open": editor.open(); break;
+  case "file-save": editor.save(); break;
+  case "file-save-as": editor.saveAs(); break;
+  case "file-revert": editor.revert(); break;
+  case "file-close": editor.close(); break;
+
+  case "find": editor.find(); break;
+  case "replace": editor.find(true); break;
+
+  case "help-about": about_dialog(); break;
+  case "help-learn-more":
+    window.require('electron').shell.openExternal('https://bert-toolkit.com');
+    break;
+  case "help-feedback":
+    window.require('electron').shell.openExternal('https://bert-toolkit.com/contact');
+    break;
+
+  case "reload": 
+    if (focusedWindow && Settings.allow_reloading){
+      global.allowReload = true;
+      focusedWindow.reload()
+    }
+    break;
+
+  default: 
+    console.warn( "Unhandled menu command:", opts[0] );
+  };
+
+
+});
 
 let updateUserStylesheet = function(){
 
@@ -498,24 +612,31 @@ let updateUserStylesheet = function(){
 
 let updateMenu = function(){  
 
-  let node, template = menuTemplate;
+  let node, template = MenuTemplate;
+  console.info( template );
 
-  // set checked for top/bottom, left/right
-  node = Utils.findNode( "top_and_bottom", template );
-  if( node ) node.checked = splitWindow.vertical;
+  Utils.updateSettings( Settings, template );  
 
-  node = Utils.findNode( "side_by_side", template );
-  if( node ) node.checked = !splitWindow.vertical;
+  // set enabled for reload
+  node = Utils.findNode( "reload", template );
+  if( node ) node.enabled = Settings.allow_reloading;
+
+//  // set checked for top/bottom, left/right
+//  node = Utils.findNode( "top-and-bottom", template );
+//  if( node ) node.checked = splitWindow.vertical;
+//
+//  node = Utils.findNode( "side-by-side", template );
+//  if( node ) node.checked = !splitWindow.vertical;
 
   // editor, shell visible
-  node = Utils.findNode( "editor_check", template );
-  if( node ) node.checked = splitWindow.visible[0];
-
-  node = Utils.findNode( "shell_check", template );
-  if( node ) node.checked = splitWindow.visible[1];
+//  node = Utils.findNode( "editor-check", template );
+//  if( node ) node.checked = splitWindow.visible[0];
+//
+//  node = Utils.findNode( "shell-check", template );
+//  if( node ) node.checked = splitWindow.visible[1];
 
   // set recent files
-  node = Utils.findNode( "open_recent", template );
+  node = Utils.findNode( "open-recent", template );
   let recent = Settings.recent_files || [];
   let elements = recent.map( function( file ){
     return {
@@ -539,7 +660,7 @@ let updateMenu = function(){
     }
 
     ["editor", "shell"].forEach( function( which ){
-      node = Utils.findNode( which + "_theme", template );
+      node = Utils.findNode( which + "-theme", template );
       let checked = Settings[which + "_theme"] || ( which === "editor" ? "default" : "dark" );
       
       node.submenu = themes.map( function( theme ){
@@ -574,22 +695,24 @@ let updateThemes = function(){
 
 PubSub.subscribe( "menu-update", updateMenu );
 
-  let updateLayout = function( dir, reset ){
-    splitWindow.setDirection(dir);
-    Settings.layoutDirection = dir;
-    if( reset ){
-      splitWindow.setVisible(0, true);
-      splitWindow.setVisible(1, true);
-      splitWindow.setSizes( 50, 50 );
-    }
-  };
+let updateLayout = function( dir, reset ){
+  splitWindow.setDirection(dir);
+  Settings.layoutDirection = dir;
+  if( reset ){
+    splitWindow.setVisible(0, true);
+    splitWindow.setVisible(1, true);
+    splitWindow.setSizes( 50, 50 );
+  }
+  shell.refresh();
+  editor.refresh();
+  resizeShell();
+};
   
 
 // on load, set up document
 document.addEventListener("DOMContentLoaded", function(event) {
 
-  // webpack inserts css as style blocks, but we want to ensure
-  // that this is last.  
+  // webpack inserts css as style blocks, so we need to ensure that this is last.  
   updateUserStylesheet();
 
   let layout = Settings.layout || {
@@ -613,7 +736,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
   splitWindow = new Splitter({ 
     node: document.body, 
     size: layout.splitWindow,
-    direction: Settings.layoutDirection || Splitter.prototype.Direction.HORIZONTAL 
+//    direction: Settings.layoutDirection || Splitter.prototype.Direction.HORIZONTAL 
+    direction: Settings.layout_vertical ? 
+      Splitter.prototype.Direction.VERTICAL : 
+      Splitter.prototype.Direction.HORIZONTAL
   });
 
   if( Settings.hide_editor ) splitWindow.setVisible( 0, false );
@@ -679,12 +805,14 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }
 
   // console.info( "pipename", pipename );
-  if( !process.env.BERT_DEV_NO_PIPE )  
+  if( !process.env.BERT_DEV_NO_PIPE ){
     R.init({ pipename: pipename });
+  }
 
   //console.info( "BH", process.env.BERT_HOME );
 
   updateThemes();
+  Utils.updateMenu( Settings, MenuTemplate );
   updateMenu();
 
   shell.focus();
@@ -695,6 +823,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     R.internal( ["hide"], "hide" );
   });
 
+  if( R.initialized ) resizeShell();
 
 });
 

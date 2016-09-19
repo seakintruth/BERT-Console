@@ -18,6 +18,7 @@ devServer: {
 module: {
  loaders: [
    { test: /\.css$/, loader: 'style-loader!css-loader' },
+   { test: /\.json$/, loader: 'json' },
    { test: /\.template.html$/, loader: 'raw' }
  ]
 },

@@ -1,6 +1,8 @@
 
 "use strict";
 
+const PubSub = require( "pubsub-js" );
+
 let Utils = {};
 
 /**
@@ -55,6 +57,73 @@ Utils.findNode = function( id, template ){
     }
   }
   return null;
+};
+
+/**
+ * attach functions to a menu template.  this only needs to happen 
+ * once (you can change them later if you want).  split from the 
+ * updateSettings function, since we may call that more often.
+ * 
+ * default behavior, which may need to change in some cases:
+ * 
+ * (1) if the template has a "setting" field, then it will be 
+ *     checked based on the truthiness of that setting, and a
+ *     click method will be added that updates the setting.
+ * 
+ * (2) if the template has an "id" field, then a click method
+ *     will be added that sends a pubsub message.
+ * 
+ */
+Utils.updateMenu = function( Settings, template ){
+
+ if( Array.isArray( template )){
+    for( let i = 0; i< template.length; i++ ){
+      if( typeof template[i] === "string" ){
+        if( template[i] === "separator" ) template[i] = { type: "separator" };
+      }
+      else Utils.updateMenu( Settings, template[i] );
+    }
+  }
+  else if( typeof template === "object" ){
+    if( template.submenu ){
+      Utils.updateMenu( Settings, template.submenu );
+    }
+    else {
+      if( template.setting ){
+        template.click = function(item){
+          Settings[template.setting] = template.invert ? !item.checked : item.checked;
+        }
+      }
+      else if( template.id ){
+        template.click = function( item, focusedWindow ){
+          PubSub.publish( "menu-click", [ template.id, template, item, focusedWindow ]);
+        }
+      }
+    }
+  }
+};
+
+/**
+ * update settings in a menu template.  sets checkmark according
+ * to the settings value.
+ */
+Utils.updateSettings = function( Settings, template ){
+ if( Array.isArray( template )){
+    for( let i = 0; i< template.length; i++ ){
+      Utils.updateSettings( Settings, template[i] );
+    }
+  }
+  else if( typeof template === "object" ){
+    if( template.submenu ){
+      Utils.updateSettings( Settings, template.submenu );
+    }
+    else {
+      if( template.setting ){
+        let checked = !!Settings[template.setting];
+        template.checked = template.invert ? !checked : checked;
+      }
+    }
+  }
 };
 
 module.exports = Utils;
