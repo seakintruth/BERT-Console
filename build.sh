@@ -1,5 +1,6 @@
 
-export NODE_ENV=production
+# if you want to build production, set this explicitly
+# export NODE_ENV=production
 
 # clean
 rm -fr build/*
@@ -9,7 +10,7 @@ rm -fr bert-shell-win32-x64
 # build
 webpack -p
 
-# install node modules
+# install node modules.  note this is always production.
 cd build
 npm install --production
 

@@ -9,7 +9,6 @@ const Settings = require( "./settings.js" );
 const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
-const NodeMap = require( './node-map.js' );
 const Utils = require( './utils.js' );
 const Menu = remote.Menu;
 const Search = require( "./search.js" );
@@ -93,18 +92,22 @@ const Editor = function(opts){
 
   };
 
+  // create a holder for un-laid-out content
+  
   let orphans = document.createElement( "div" );
   orphans.className = "orphans";
   document.body.appendChild( orphans );
 
-  // FIXME: this is handy, but webpack is forced to leave
-  // it as-is.  better would be to use a file, or let webpack
-  // know if can compress whitespace.
-
-  let nodes = NodeMap.parse( htmlTemplate, opts.node );
+  // load external html; insert it into the target
+  // and get a reference to named entities.
+  
+  let nodes = Utils.parseHTML( htmlTemplate, opts.node );
 
   if( Settings.editor_hide_status_bar ) nodes.statusBar.style.display = "none";
 
+  /**
+   * mark as dirty (or clean)
+   */
   let markDirty = function( dirty ){
     active.dirty = dirty;
     let index = 0;
@@ -118,21 +121,26 @@ const Editor = function(opts){
     else tabs[index].classList.remove( "dirty" );
   };
 
+  /**
+   * update cursor position on the status bar 
+   */
   let updatePosition = function(){
     let pos = active.cm.getDoc().getCursor();
     nodes.statusPosition.textContent = `Line ${pos.line+1}, Col ${pos.ch+1}`;
   };
 
+  /**
+   * update language and position on the status bar
+   */
   let updateStatus = function(){
     if( !active ) return;
-
-//    let mode = active.cm.getOption("mode") || "?";
-//    mode = mode[0].toUpperCase() + mode.substr(1).toLowerCase();
-
     nodes.statusLanguage.textContent = `Language: ${active.language || "?"}`;
     updatePosition();
   };
 
+  /** 
+   * select a tab by index
+   */
   let selectTab = function( index ){
 
     tabs.forEach( function( tab, i ){ 
@@ -171,7 +179,7 @@ const Editor = function(opts){
         defaultId: 0,
         noLink: true,
         message: "Save changes to " +
-            (editor.path ? path.basename( editor.path ) : "Untitled") + "?"
+            (editor.path ? path.basename( editor.path ) : editor.alternateName) + "?"
 
       });
       switch( rslt ){
@@ -365,6 +373,10 @@ const Editor = function(opts){
     return false;
   };
 
+  /** 
+   * ensure that we have a mode file.  if not, add it to 
+   * the document and delay updating the markup.
+   */
   let ensureMode = function( editor ){
 
     editor = editor || active;
@@ -392,16 +404,47 @@ const Editor = function(opts){
 
   };
 
+  /**
+   * get a name so we have ascending utitled-1, untitled-2, &c. 
+   * essentially we want these to increment monotonically, starting
+   * from 1, with the exception that if there is one hanging around
+   * like Untitled-5, the next one will be -6 EVEN THOUGH there are 
+   * no numbers 1-4.
+   */
+  let getAlternateName = function(){
+
+    // FIXME: parameterize
+    let baseName = "Untitled";
+
+    let max = 0;
+    editors.forEach( function( editor ){
+      if( editor.path ) return;
+      let m = editor.alternateName.match( /-(\d+)$/ );
+      if( m ){
+        max = Math.max( max, Number( m[1] ));
+      }
+    });
+
+    return baseName + "-" + (max+1);
+
+  };
+
+  /**
+   * create a new editor (buffer) and add it to the window.
+   */
   let addEditor = function( options, toll ){
 
-    options = options || {};
+    let editor = options || {};
 
     let tab = document.createElement("div");
     tab.className = toll ? "tab": "tab active";
+
     let label = document.createElement( "span" );
     label.className = "tab-label";
-    label.textContent = options.path ? path.basename( options.path ) : "Untitled";
+    if( !editor.path ) editor.alternateName = getAlternateName();
+    label.textContent = editor.path ? path.basename( editor.path ) : editor.alternateName;
     tab.appendChild( label );
+    
     let X = document.createElement( "span" );
     X.className = "tab-x";
     tab.appendChild( X );
@@ -413,30 +456,29 @@ const Editor = function(opts){
     tabs.push( tab );
     nodes.tabBar.appendChild( tab );
 
-    editors.forEach( function( editor ){
-      orphans.appendChild( editor.node );
+    editors.forEach( function( elt ){
+      orphans.appendChild( elt.node );
     });
 
-    options.node = document.createElement( "div" );
-    options.node.className = "editor-content-pane active";
+    editor.node = document.createElement( "div" );
+    editor.node.className = "editor-content-pane active";
 
-    if( toll ) orphans.appendChild( options.node );
-    else nodes.contentPanel.appendChild( options.node );
+    if( toll ) orphans.appendChild( editor.node );
+    else nodes.contentPanel.appendChild( editor.node );
 
-    options.cm =  CodeMirror( function(elt){
-      options.node.appendChild( elt );
+    editor.cm =  CodeMirror( function(elt){
+      editor.node.appendChild( elt );
       }, { 
         lineNumbers: !Settings.editor_hide_linenumbers,
-        value: options.value || "",
-        mode: "",
-        // mode: "r", // opts.mode,
+        value: editor.value || "",
+        mode: "", // mode gets handled later
         // allowDropFileTypes: opts.drop_files,
         viewportMargin: 50
     });
-    options.cm.setOption( "theme", Settings.editor_theme || "default" );
-    options.cm.setOption("matchBrackets", true);
+    editor.cm.setOption( "theme", Settings.editor_theme || "default" );
+    editor.cm.setOption("matchBrackets", true);
 
-    options.cm.setOption("extraKeys", {
+    editor.cm.setOption("extraKeys", {
       Esc: function(cm){
         if( findActive ) closeSearch();
       },
@@ -456,16 +498,16 @@ const Editor = function(opts){
       }
     });
 
-    Search.apply( options.cm );
+    Search.apply( editor.cm );
 
-    editors.push(options);
+    editors.push(editor);
     if( !toll ){
-      activate( options );
+      activate( editor );
       updateStatus();
       PubSub.publish( "editor-new-tab" );
     }
 
-    ensureMode(options);
+    ensureMode(editor);
 
   };
 
@@ -512,26 +554,29 @@ const Editor = function(opts){
     });
   };
 
+  /** 
+   * API function: refresh the active tab (other tabs will
+   * be refreshed when you switch to them).
+   */
   this.refresh = function(){
 
     // switching to a new tab calls refresh, so we only need
     // to refresh the active tab 
 
-    /*
-    editors.forEach( function( editor ){
-      editor.cm.refresh();
-    });
-    */
-    
     active.cm.refresh();
   }
 
+  /** 
+   * API: new buffer 
+   */
   this.newFile = function(){
     addEditor();
   };
 
+  /**
+   * API: revert (reload from disk).  this is undoable.
+   */
   this.revert = function(){
-
     return new Promise( function( resolve, reject ){
       fs.readFile( active.path, { encoding: 'utf8' }, function( err, contents ){
         if( err ){
@@ -544,9 +589,11 @@ const Editor = function(opts){
         resolve();
       });
     });
+  };
 
-  }
-
+  /**
+   * API: close active buffer
+   */
   this.close = function(){
 
     for( let i = 0; i< editors.length; i++ ){
@@ -557,10 +604,13 @@ const Editor = function(opts){
     }
   };
 
+  /**
+   * API: select an editor, either by explicit
+   * index or by "delta", for use in previous/next
+   * window commands.
+   */
   this.selectEditor = function(opts){
-
     let index = 0;
-
     if( opts.delta ){
       for( let i = 0; i< editors.length; i++ ){
         if( active === editors[i] ){
@@ -574,11 +624,14 @@ const Editor = function(opts){
     }
     else if( typeof opts.index !== "undefined" ) index = opts.index;
     else return;
-    
     selectTab(index);
-
   };
 
+  /**
+   * internal save method.  if the passed editor does not have 
+   * a path, it will call (internal) saveAs.  otherwise it will 
+   * save to the existing path.
+   */
   let save = function( editor ){
 
     if( !editor ){
@@ -596,12 +649,19 @@ const Editor = function(opts){
     }
   };
 
+  /**
+   * update theme.  we get the actual theme from settings.
+   */
   this.updateTheme = function(){
     editors.forEach( function( editor ){
       editor.cm.setOption( "theme", Settings.editor_theme || "default" );
     })
   };
 
+  /**
+   * internal saveAs: present a file chooser and select or create a 
+   * path, then save to that path.
+   */
   let saveAs = function(editor){
 
     if(!editor) editor = active;
@@ -640,7 +700,10 @@ const Editor = function(opts){
 
   };
 
+  /** API: wraps internal save method */
   this.save = save;
+
+  /** API: wraps internal saveAs method */
   this.saveAs = saveAs;
 
   // --- find and replace (aka search panel) ---
@@ -677,7 +740,7 @@ const Editor = function(opts){
   });
 
   /**
-   * display and focus the search panel; 
+   * API method: display and focus the search panel; 
    * optionally show the "replace" box.
    */
   this.find = function( replace ){
@@ -715,7 +778,6 @@ const Editor = function(opts){
   });
 
   nodes['find-text'].addEventListener( "keyup", function(e){
-    
     e.stopPropagation();
     search();
   });
@@ -768,8 +830,10 @@ const Editor = function(opts){
 
   // --- /find and replace ---
 
-  // TODO: revert
-
+  /**
+   * API method: open a file, either with an explcit path
+   * or starting with a file chooser.
+   */
   this.open = function( file ){
 
     if( !file ){    
@@ -799,6 +863,7 @@ const Editor = function(opts){
 
   };
 
+  // tail method
   let loadFiles = function(arr){
     return new Promise( function( resolve, reject ){
       if( !arr.length ) return resolve();
@@ -811,7 +876,9 @@ const Editor = function(opts){
     });
   }
 
-  // load previously open files
+  // on init, load previously open files or open a 
+  // blank buffer (we never have no buffers).
+  
   if( Settings.openFiles && Settings.openFiles.length ){
     loadFiles( Settings.openFiles.slice(0)).then( function(){
 

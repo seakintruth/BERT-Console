@@ -2,12 +2,11 @@
 "use strict";
 
 require( "../style/notify.css" );
-const NodeMap = require( "./node-map.js" );
+const Utils = require( "./utils.js" );
 
 const DEFAULT_TIMEOUT = 3; // seconds
 
 let panel = null;
-
 
 const createPanel = function(){
   panel = document.createElement( "div" );
@@ -15,6 +14,7 @@ const createPanel = function(){
   document.body.appendChild( panel );
 };
 
+/*
 module.exports.notify = function( title, body, opts ){
 
   if( !panel ) createPanel();
@@ -23,7 +23,7 @@ module.exports.notify = function( title, body, opts ){
   let node = document.createElement( "div" );
   node.className = "notifier-message " + opts.className || "";
 
-  NodeMap.parse( `
+  Utils.parseHTML( `
     <div class='notifier-title'>${title}</div>
     <div class='notifier-body'>${body}</div>
   `, node );
@@ -55,4 +55,5 @@ module.exports.notify = function( title, body, opts ){
   setTimeout( function(){ node.style.opacity=1; }, 1);
 
 };
+*/
 

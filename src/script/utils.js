@@ -6,6 +6,28 @@ const PubSub = require( "pubsub-js" );
 let Utils = {};
 
 /**
+ * given a block of html, add it to the target node
+ * (just set innerHTML), then return a map of all 
+ * nodes that have ids.
+ */
+Utils.parseHTML = function( content, target ){
+
+  let search = function( node, map ){
+    let children = node.children;
+    for( let i = 0; i< children.length; i++ ){
+      if( children[i].id ) map[children[i].id] = children[i];
+      search( children[i], map );
+    }
+  };
+
+  let nodes = {};
+  target.innerHTML = content;
+  search( target, nodes );
+  return nodes;
+
+};
+
+/**
  * ensure that a stylesheet is attached to the document.
  * loads by reference (i.e. link rel) instead of inlining.
  */
