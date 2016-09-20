@@ -24,6 +24,16 @@
 
 require( "../style/editor.css" );
 
+// some default settings in the global settings object
+
+const Utils = require( './utils.js' );
+Utils.initDefaults( Settings, {
+  editor: {
+    line_numbers: true,
+    status_bar: true
+  }
+});
+
 // separate settings object for MRU and open files; this one is in 
 // localStorage.  it's expressly not put int global storage, just 
 // available in this module.
@@ -36,7 +46,6 @@ const dialog = remote.dialog;
 const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
-const Utils = require( './utils.js' );
 const Menu = remote.Menu;
 const Search = require( "./search.js" );
 

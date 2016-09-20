@@ -102,6 +102,19 @@ Utils.findNode = function( id, template ){
   return null;
 };
 
+/** for settings, set defaults if there are no values */
+Utils.initDefaults = function( target, defaults ){
+
+  if( !defaults || ( typeof defaults !== "object" )) return;
+  Object.keys( defaults ).forEach( function( key ){
+    if( typeof target[key] === "undefined" ){
+      target[key] = defaults[key];
+    }
+    else Utils.initDefaults( target[key], defaults[key] );
+  });
+
+};
+
 /**
  * utiltity method: dereference field, possibly deep.
  * for arrays, use dot syntax.
