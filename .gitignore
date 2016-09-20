@@ -1,3 +1,9 @@
 
 bower_components
 node_modules
+build
+dist
+bert-shell-win32-ia32
+bert-shell-win32-x64
+ext
+!ext/resources.md

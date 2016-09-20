@@ -1,0 +1,39 @@
+
+/*
+ * the user stylesheet can customize most of the styles 
+ * in the BERT console, although you may have to dig around
+ * to find the right id or class.
+ *
+ * a couple of examples:
+ */
+
+/** use a web font in the shell: */
+
+/*
+@import 'https://fonts.googleapis.com/css?family=Fira+Mono:400,700';
+
+.shell pre {
+  font-family: 'Fira Mono', monospace;
+  font-size: 10pt;
+}
+*/
+
+/** adjust margins in the editor: */
+
+/*
+.editor-content-pane { margin-left: .5em; }
+*/
+
+/** change the color of comments in the editor: */
+
+/*
+.editor-content-pane .cm-comment { color: green; }
+*/
+
+/** swap left and right (or top and bottom) panels: */
+
+/*
+.split-pane:nth-child(2) { order: 0; }
+.splitter { order: 1; }
+.split-pane:first-child { order: 2; }
+*/

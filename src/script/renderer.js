@@ -36,7 +36,7 @@ let focused = null;
 let statusMessage = null;
 let fmcount = 0;
 
-const USER_STYLESHEET_PATH = "dist/user-stylesheet.css";
+const USER_STYLESHEET_PATH = "user-stylesheet.css";
 
 let last_parse_status = Shell.prototype.PARSE_STATUS.OK;
 
@@ -607,7 +607,8 @@ let updateUserStylesheet = function(){
   if( node ){
     node.parentNode.removeChild( node );
   }
-  let f = path.join( process.cwd(), USER_STYLESHEET_PATH ); // + "?" + new Date().getTime();
+//  let f = path.join( process.cwd(), USER_STYLESHEET_PATH ); // + "?" + new Date().getTime();
+  let f = USER_STYLESHEET_PATH ; // + "?" + new Date().getTime();
   Utils.ensureCSS( f, { 'data-position': 'last', 'data-id': 'user-stylesheet' }, document.head );
 
 };
@@ -647,7 +648,7 @@ let updateMenu = function(){
   });
   node.submenu = elements.reverse().slice(0,13);
 
-  fs.readdir( "dist/theme", function( err, files ){
+  fs.readdir( "theme", function( err, files ){
 
     let themes = [];    
     if( !err ){
@@ -689,7 +690,7 @@ let updateThemes = function(){
 
   [Settings.shell_theme, Settings.editor_theme].forEach( function( theme ){
     if( theme && theme !== "default" ) {
-      Utils.ensureCSS( `dist/theme/${theme}.css`, { 'data-watch': true } ); 
+      Utils.ensureCSS( `theme/${theme}.css`, { 'data-watch': true } ); 
     }
   });
 
@@ -807,7 +808,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }
 
   // console.info( "pipename", pipename );
-  if( !process.env.BERT_DEV_NO_PIPE ){
+  //if( !process.env.BERT_DEV_NO_PIPE ){
+  if( pipename ){ 
     R.init({ pipename: pipename });
   }
 

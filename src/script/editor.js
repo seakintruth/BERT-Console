@@ -335,7 +335,7 @@ const Editor = function(opts){
   let scriptCache = {};
 
   let cmmode = function( language ){
-    return `dist/codemirror/mode/${language}/${language}.js`;
+    return `codemirror/mode/${language}/${language}.js`;
   };
 
   /**
@@ -492,6 +492,11 @@ const Editor = function(opts){
       fs.readFile( file, { encoding: 'utf8' }, function( err, contents ){
         if( err ){
           PubSub.publish( "file-open-error", err );
+
+          // remove from recent files? ... 
+          // depends on the error, probably (permissions or locked: no, 
+          // not found: yes)
+
         }
         else {
           addEditor({ path: file, value: contents, node: opts.node }, toll);
@@ -809,11 +814,17 @@ const Editor = function(opts){
   // load previously open files
   if( Settings.openFiles && Settings.openFiles.length ){
     loadFiles( Settings.openFiles.slice(0)).then( function(){
-      selectTab( tabs.length - 1 );
+
+      // suppose there are recent files, but all of them
+      // error out; then we need to open a blank.
+
+      if( tabs.length ) selectTab( tabs.length - 1 );
+      else addEditor();
     });
   }
-  else addEditor();
-
+  else {
+    addEditor();
+  }
 };
 
 module.exports = Editor;
