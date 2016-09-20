@@ -25,7 +25,7 @@ const Utils = require( "./utils.js" );
 const Notifier = require( "./notify.js" );
 
 const Resize = require( "./resize-events.js" );
-const MenuTemplate = require( "../data/menu.json" );
+const MenuTemplate = require( "../data/main-menu.js" );
 
 // globals
 let splitWindow;
