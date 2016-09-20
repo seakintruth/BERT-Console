@@ -24,9 +24,15 @@
 
 require( "../style/editor.css" );
 
+// separate settings object for MRU and open files; this one is in 
+// localStorage.  it's expressly not put int global storage, just 
+// available in this module.
+
+let FileSettings = require( "./settings.js" ).createStore({ 
+  type: "localStorage", key: "file-settings", event: null });
+
 const remote = window.require('electron').remote;
 const dialog = remote.dialog;
-const Settings = require( "./settings.js" ).store( "file", "bert-shell-settings.json", { home: true, watch: true });
 const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
@@ -229,10 +235,10 @@ const Editor = function(opts){
     tabs.splice( index, 1 );
 
     if( editor.path ){
-      let tmp = Settings.openFiles.filter(function(file){
+      let tmp = FileSettings.openFiles.filter(function(file){
         return file !== editor.path;
       });
-      Settings.openFiles = tmp;
+      FileSettings.openFiles = tmp;
     }
 
     editor.node.parentNode.removeChild( editor.node );
@@ -532,16 +538,20 @@ const Editor = function(opts){
 
   };
 
+  this.getRecentFiles = function(){
+    return FileSettings.recent_files || [];
+  };
+
   let updateRecentFiles = function(file){
 
     // push onto recent files list.  remove other references to the 
     // same file.  we do this so it will move to the top of the list
     // when you open it again.
 
-    let recent = Settings.recent_files || [];
+    let recent = FileSettings.recent_files || [];
     recent = recent.filter( function(test){ return test !== file });
     recent.push( file );
-    Settings.recent_files = recent;
+    FileSettings.recent_files = recent;
 
     PubSub.publish( "menu-update" );
 
@@ -565,9 +575,9 @@ const Editor = function(opts){
           addEditor({ path: file, value: contents, node: opts.node }, toll);
           if( add ){
             // settings doesn't handle arrays
-            let arr = Settings.openFiles || [];
+            let arr = FileSettings.openFiles || [];
             arr.push( file );
-            Settings.openFiles = arr;
+            FileSettings.openFiles = arr;
           }
         }
         resolve();
@@ -584,7 +594,7 @@ const Editor = function(opts){
     // switching to a new tab calls refresh, so we only need
     // to refresh the active tab 
 
-    active.cm.refresh();
+    if( active ) active.cm.refresh();
   }
 
   /** 
@@ -714,7 +724,7 @@ const Editor = function(opts){
     editors.forEach( function( editor ){
       if( editor.path ) arr.push( editor.path );
     });
-    Settings.openFiles = arr;
+    FileSettings.openFiles = arr;
     ensureMode();
 
     return true;
@@ -900,8 +910,8 @@ const Editor = function(opts){
   // on init, load previously open files or open a 
   // blank buffer (we never have no buffers).
   
-  if( Settings.openFiles && Settings.openFiles.length ){
-    loadFiles( Settings.openFiles.slice(0)).then( function(){
+  if( FileSettings.openFiles && FileSettings.openFiles.length ){
+    loadFiles( FileSettings.openFiles.slice(0)).then( function(){
 
       // suppose there are recent files, but all of them
       // error out; then we need to open a blank.

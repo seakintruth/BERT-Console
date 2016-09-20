@@ -21,7 +21,8 @@
  */
 
 /**
- * dictionary object with a backing store (localStorage or file) that broadcasts changes.
+ * dictionary object with a backing store (localStorage or file) that 
+ * broadcasts changes. supports deep structure.
  */
 
 "use strict";
@@ -31,21 +32,34 @@ const path = require( "path" );
 const PubSub = require( "pubsub-js" );
 const chokidar = window.require('chokidar');
 
+// === storage bases ==========================================================
+
+// storage bases need to provide save() and restore() methods,
+// and implement a __restoring__ property which is set within 
+// that restore method.  we should probably stick all that stuff 
+// into a base class.
+
+// --- localStorage -----------------------------------------------------------
+
 /**
  * settings base using LocalStorage
  */
 const LocalStorageBase = function(key){
 	
 	if( !key ) throw( "provide a key for localStorage" );
+
 	Object.defineProperty( this, "__storage_key__", {
 		enumerable: false,
 		configurable: false,
 		value: key
 	});
 	
-	let json = localStorage.getItem( key );
-	let js = json ? JSON.parse( json ) : {};
-	Object.assign( this, js );
+	Object.defineProperty( this, "__reverting__", {
+		enumerable: false,
+		configurable: false,
+    writable: true, 
+		value: false
+	});
 
 };
 
@@ -53,9 +67,23 @@ LocalStorageBase.prototype.save = function(){
 	localStorage.setItem( this.__storage_key__, JSON.stringify( this ));
 };
 
+LocalStorageBase.prototype.restore = function(){
+
+  this.__reverting__ = true;
+
+	let json = localStorage.getItem( this.__storage_key__ );
+	let js = json ? JSON.parse( json ) : {};
+	Object.assign( this, js );
+
+  this.__reverting__ = false;
+
+};
+
+// --- file -------------------------------------------------------------------
+
 /**
  * settings base using a file: the benefit is that 
- * we can edit it.
+ * we can edit it externally.
  */
 const FileBase = function(file, options){
 
@@ -69,11 +97,8 @@ const FileBase = function(file, options){
 		value: file
 	});
 
-  // we have the option to watch this file.  that creates some issues
-  // with saving on property changes, because they will bounce back 
-  // and forth.  so we have this property we can use to say "we're in
-  // this kind of operation".  when we are reverting from a file, 
-  // don't write the properties file.
+  // flag: when we are reverting from a file, don't write
+  // back to the file.
 
 	Object.defineProperty( this, "__reverting__", {
 		enumerable: false,
@@ -82,8 +107,8 @@ const FileBase = function(file, options){
 		value: false
 	});
 
-  // and the other way around: since we save on changes, don't reload
-  // when we are setting it.  FIXME: one __state__ property?
+  // and the other way around: since we save on changes, don't 
+  // reload when we are setting it.  FIXME: one __state__ property?
 
   Object.defineProperty( this, "__setting__", {
 		enumerable: false,
@@ -92,13 +117,27 @@ const FileBase = function(file, options){
 		value: false
   });
 
+};
+
+FileBase.prototype.save = function(){
+  let instance = this;
+  instance.__setting__ = true;
+  fs.writeFile( this.__storage_path__, JSON.stringify(this, undefined, 2), { encoding: "utf8" }, function(){
+    instance.__setting__ = false;
+  });
+};
+
+FileBase.prototype.restore = function(){
+
+  this.__reverting__ = true;
+
   // NOTE: this reads synchronously.  it's important that we are loaded
   // prior to accessing any settings.  as long as settings is not too 
   // large, this should not be a problem.
 
   let contents, exists = false;
   try { 
-    contents = fs.readFileSync( file, { encoding: "utf8" }) || "";
+    contents = fs.readFileSync( this.__storage_path__, { encoding: "utf8" }) || "";
     exists = true;
   } catch( e ){
     contents = "{}";
@@ -110,101 +149,112 @@ const FileBase = function(file, options){
 
   if( !exists ) this.save();
 
+  this.__reverting__ = false;
+
 };
 
-FileBase.prototype.save = function(){
-  this.__setting__ = true;
-  fs.writeFile( this.__storage_path__, JSON.stringify(this, undefined, 2), { encoding: "utf8" }, function(){
-    this.__setting__ = false;
+// === settings implementation ================================================
+
+const chainProxy = function( property, value, update, root, path ){
+
+  // it's turtles all the way down
+  if( Array.isArray(value)){
+    for( let i = 0; i< value.length; i++ ){
+      if( value[i] && typeof value[i] === "object" ) value[i] = chainProxy( i, value[i], update, root, [path,i].join('.'));
+    }
+  }
+  else {
+    Object.keys(value).forEach( function(i){
+      if( value[i] && typeof value[i] === "object" ) value[i] = chainProxy( i, value[i], update, root, [path,i].join('.'));
+    });
+  }
+
+  return new Proxy( value, {
+    set: function( subtarget, subproperty, subvalue ) {
+      if( subvalue && typeof subvalue === "object" ){
+        subtarget[subproperty] = chainProxy( subproperty, subvalue, update, root, [path,subproperty].join('.'));
+      }
+      else if( typeof subvalue === "undefined" || null === subvalue ) delete subtarget[subproperty];
+      else subtarget[subproperty] = subvalue;
+      update( root, [path,subproperty].join('.'), value );
+      return true;
+    }
   });
+
 };
 
-// this is implemented as a singleton, and can support multiple 
-// instances (although there may not be much call for that).
-
-let cache = {};
+// this is implemented as a factory. to share settings instances across 
+// modules, create it somewhere (early) and stick it in the global object.
 
 module.exports = {
 
-  store: function( type, key, options ){
+  createStore: function( options ){
 
     options = options || {};
+    options.type = options.type || "localStorage";
+    
+    // set explicitly, leave undefined for default, or set null for no events.
+    if( typeof options.event === "undefined" ) options.event = "settings-change";
 
     // normalize
-    if( type === "file" ){
-      if( key && options.home ){
-        key = path.join( process.env.USERPROFILE || process.env.HOME, key );
+    if( options.type === "file" ){
+      if( options.key && options.home ){
+        options.key = path.join( process.env.USERPROFILE || process.env.HOME, options.key );
       }
-      key = key || path.join( process.env.USERPROFILE || process.env.HOME, "settings.json" );
+      options.key = options.key || path.join( process.env.USERPROFILE || process.env.HOME, "settings.json" );
     } 
-    else if( !type || type === "localStorage" ) { 
-      type = "localStorage";
-      key = key || "settings";
+    else if( options.type === "localStorage" ) { 
+      options.key = options.key || "settings";
     }
     else throw "invalid base type";
 
-    // check cache
-    let compositeKey = type + ":" + key;
-    if( cache[compositeKey] ) return cache[compositeKey];
+    // create the base store
+    let base = ( options.type === "file" ) ? new FileBase( options.key, options ) : new LocalStorageBase( options.key, options );
 
-    // create and return
-    let base = ( type === "file" ) ? new FileBase( key, options ) : new LocalStorageBase( key, options );
+    // update method is passed to children    
+    let update = function( target, property, value ){
+
+      // save to backing store.  for the file version, we may want to toll 
+      // this when reloading; otherwise we'll trigger lots of writes, and probably
+      // corrupt the file.
+
+      if( !target.__reverting__ ) target.save();
+
+      // broadcast (optionally)
+      if( options.event ) PubSub.publish( options.event, { key: property, val: value });
+
+    }
+
+    // create the main proxy
     let Settings = new Proxy( base, {
 
       set: function(target, property, value, receiver) {
 
-        // console.info( "SET", property, "->", value );
-
-        if( typeof value === "undefined" || null === value ) delete target[property];
+        // remember that typeof null === "object"  
+        if( value && typeof value === "object" ){
+          target[property] = chainProxy( property, value, update, target, property);
+        }
+        else if( typeof value === "undefined" || null === value ) delete target[property];
         else target[property] = value;
-
-        // save to backing store.  for the file version, we may want to toll 
-        // this when reloading; otherwise we'll trigger lots of writes, and probably
-        // corrupt the file.
-
-        if( !target.__reverting__ ) target.save();
-        // else console.info( "Not saving" );
-
-        // broadcast
-        PubSub.publish( "settings-change", { key: property, val: value });
-
+        update( target, property, value );
         return true;
-      },
-
-        /**
-         * NOTE: we're deep-copying here.  why? to prevent accidental update
-         * of object values.  There's a case in which you get an object
-         * 
-         * let x = Settings['x']
-         * 
-         * and then modify that object,
-         * 
-         * x.y = 1
-         * 
-         * which has the effect of calling set() on the Settings object because
-         * it's a reference.  while that might be useful behavior, it's unintuitive
-         * and different from non-object behavior.  therefore we use copies.
-         */
-      get: function(target, property, receiver) {
-            let rslt = target[property];
-            if( typeof rslt === "object"){
-                // cheaper way?
-                rslt = JSON.parse( JSON.stringify( rslt ));
-            }
-            return rslt;
       }
 
     });
 
-    if( type === "file" && options.watch ){
+    Settings.restore();
+
+    if( options.type === "file" && options.watch ){
       
       // optionally watch the file for changes; on external change, reload
       // and notify.  FIXME: should we notify properties individually?
 
-      chokidar.watch( key ).on('change', (event, path) => {
+      chokidar.watch( options.key ).on('change', (event, path) => {
 
+        // don't do this if we are programatically changing
         if( base.__setting__ ) return;
-        fs.readFile( key, { encoding: "utf8" }, function( err, contents ){
+
+        fs.readFile( options.key, { encoding: "utf8" }, function( err, contents ){
           if( err ) throw( "read settings file failed");
           let js = JSON.parse( contents );
           base.__reverting__ = true;
@@ -215,8 +265,7 @@ module.exports = {
 
     }
 
-    cache[compositeKey] = Settings;
-    return cache[compositeKey];
+    return Settings;
 
   }
 

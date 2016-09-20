@@ -37,14 +37,18 @@ const chokidar = window.require('chokidar');
 const Shell = require( "cmjs-shell" );
 //const Shell = require( "../../../constructr/cmjs-shell/shell.js" );
 
+// initialize the global settings store.  this is file-based.  put it in 
+// the app home directory (i.e. root)?  
+
+global.Settings = require( "./settings.js" ).createStore({ 
+  type: "file", key: "bert-shell-settings.json", watch: true });
+
 // local modules
 const Splitter = require( "./splitter.js" );
-const Settings = require( "./settings.js" ).store( "file", "bert-shell-settings.json", { watch: true, home: true });
 const PipeR = require( "./piper.js" );
 const Editor = require( "./editor.js" );
 const Utils = require( "./utils.js" );
 const Notifier = require( "./notify.js" );
-
 const Resize = require( "./resize-events.js" );
 const MenuTemplate = require( "../data/main-menu.js" );
 
@@ -89,6 +93,10 @@ PubSub.subscribe( "editor-new-tab", function(){
 
 });
 
+R.on( "control", function(){
+  // console.info( "CTL", arguments );
+})
+
 R.on( "pipe-closed", function(){
   global.__quit =  true;
   remote.getCurrentWindow().close();
@@ -122,6 +130,12 @@ PubSub.subscribe( "splitter-drag", function( channel, splitter ){
 PubSub.subscribe( "settings-change", function( channel, update ){
 
   switch( update.key ){
+
+  case "shell_theme":
+  case "editor_theme":
+    updateThemes();
+    break;
+
   case "hide_shell":
     splitWindow.setVisible( 1, !Settings.hide_shell );
     if( !Settings.hide_shell ) shell.refresh();
@@ -299,285 +313,6 @@ var about_dialog = function () {
   });
 };
 
-// menu
-
-/*
-  let menuTemplate = [
-    {
-      label: "File", 
-      submenu: [
-        {
-          label: 'New',
-          accelerator: 'CmdOrCtrl+N',
-          click: function(){ editor.newFile(); }
-        },
-        {
-          label: 'Open...',
-          accelerator: 'CmdOrCtrl+O',
-          click: function(){ editor.open(); }
-        },
-        {
-          id: 'open_recent',
-          submenu: [],
-          label: 'Open Recent'
-        },
-        {
-          label: 'Save',
-          accelerator: 'CmdOrCtrl+S',
-          click: function(){ editor.save(); }
-        },
-        {
-          label: 'Save As...',
-          accelerator: 'Ctrl+Shift+S',
-          click: function(){ editor.saveAs(); }
-        },
-        {
-          label: 'Revert',
-          click: function(){ editor.revert(); }
-        },
-        {
-          label: 'Close Document',
-          accelerator: 'CmdOrCtrl+W',
-          click: function(){ editor.close(); }
-        },
-        {
-          type: 'separator'
-        },
-        {
-          role: 'quit',
-          label: 'Close BERT Console'
-        }
-      ]
-    },
-    {
-      label: "Edit",
-      submenu: [
-        {
-        role: 'undo'
-        },
-        {
-          role: 'redo'
-        },
-        {
-          type: 'separator'
-        },
-        {
-          role: 'cut'
-        },
-        {
-          role: 'copy'
-        },
-        {
-          role: 'paste'
-        },
-        / *
-        {
-          role: 'pasteandmatchstyle'
-        },
-        * /
-        {
-          role: 'delete'
-        },
-        {
-          role: 'selectall'
-        },
-         {
-          type: 'separator'
-        },
-        {
-          label: 'Find',
-          accelerator: 'Ctrl+F',
-          click: function(){
-            editor.find();
-          }
-        },
-        {
-          label: 'Replace',
-          accelerator: 'Ctrl+H',
-          click: function(){
-            editor.find(true);
-          }
-        }
-      ]
-    },
-    {
-      label: "View",
-      submenu: [
-       
-        {
-          id: 'editor_check',
-          label: 'Show Editor',
-          type: 'checkbox',
-          checked: !Settings.hide_editor,
-          accelerator: 'Ctrl+Shift+E',
-          click: function( item ){
-            splitWindow.setVisible( 0, item.checked );
-            Settings.hide_editor = !item.checked;
-            if( item.checked ) editor.refresh();
-            updateFocusMessage();
-            resizeShell(true);
-          }
-        },
-        {
-          id: 'shell_check',
-          label: 'Show R Shell',
-          type: 'checkbox',
-          checked: !Settings.hide_shell,
-          accelerator: 'Ctrl+Shift+R',
-          click: function( item ){
-            splitWindow.setVisible( 1, item.checked );
-            Settings.hide_shell = !item.checked;
-            shell.refresh();
-            updateFocusMessage();
-            resizeShell(true);
-          }
-        },
-         {
-          label: 'Layout',
-          submenu: [
-            {
-              id: 'top_and_bottom',
-              label: 'Top and Bottom',
-              click( item, focusedWindow ){
-                updateLayout( Splitter.prototype.Direction.VERTICAL, true  );
-              },
-              type: 'radio',
-              //checked: splitWindow.vertical
-            },
-            {
-              id: 'side_by_side',
-              label: 'Side by Side',
-              click( item, focusedWindow ){
-                updateLayout( Splitter.prototype.Direction.HORIZONTAL, true );
-              },
-              type: 'radio',
-              //checked: !splitWindow.vertical
-            }
-          ]
-        },
-        {type: 'separator'},
-
-        {
-          label: "Editor",
-          submenu: [
-            {
-              id: 'editor_theme',
-              label: "Theme"
-            },
-            {
-              label: "Show Line Numbers",
-              type: "checkbox",
-              checked: !Settings.editor_hide_linenumbers,
-              click: function(item){ Settings.editor_hide_linenumbers = !item.checked; }
-            },
-            {
-              label: "Show Status Bar",
-              type: "checkbox",
-              checked: !Settings.editor_hide_status_bar,
-              click: function(item){ Settings.editor_hide_status_bar = !item.checked; }
-            }
-          ]
-        },
-
-        {
-          label: "Shell",
-          submenu: [
-            {
-              id: 'shell_theme',
-              label: "Theme"
-            },
-            {
-              label: "Update Console Width on Resize",
-              type: "checkbox",
-              checked: !!Settings.auto_resize,
-              click: function(item){
-                Settings.auto_resize = item.checked;
-                if( item.checked ) resizeShell();
-              }
-            },
-            {
-              label: "Wrap Long Lines",
-              type: "checkbox",
-              checked: !!Settings.shell_wrap,
-              click: function(item){ 
-                Settings.shell_wrap = item.checked; 
-                shell.setOption( "lineWrapping", Settings.shell_wrap );
-                shell.refresh();
-              }
-            },
-          ]
-        },
-
-        {
-          label: "User Stylesheet",
-          click: function(){
-            editor.open( USER_STYLESHEET_PATH );
-          }
-        },
-
-        { type: 'separator' },
-
-        {
-          label: "Developer",
-          submenu: [
-            {
-              label: 'Allow Reloading',
-              type: 'checkbox',
-              checked: !!Settings.allow_reloading,
-              click: function(item){
-                Settings.allow_reloading = item.checked;
-                item.menu.items.forEach( function( item ){
-                  if( item.id === "reload" ) item.enabled = Settings.allow_reloading;
-                });
-              }
-            },
-            {
-              id: 'reload',
-              label: 'Reload',
-              accelerator: 'CmdOrCtrl+R',
-              enabled: Settings.allow_reloading,
-              click (item, focusedWindow) {
-                if (focusedWindow && Settings.allow_reloading){
-                  global.allowReload = true;
-                  focusedWindow.reload()
-                }
-              }
-            },
-            {
-              label: 'Toggle Developer Tools',
-              accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-              click (item, focusedWindow) {
-                if (focusedWindow) focusedWindow.webContents.toggleDevTools()
-              }
-            }
-
-          ]
-        },
-
-      ]
-    },
-    {
-      label: "Help",
-      submenu: [
-        {
-          label: "About",
-          click() { about_dialog(); }
-        },
-        {
-          label: "Learn More",
-          click () { window.require('electron').shell.openExternal('https://bert-toolkit.com') }
-        },
-        { type: 'separator' },
-        {
-          label: "Feedback",
-          click () { window.require('electron').shell.openExternal('https://bert-toolkit.com/contact') }
-        }
-      ]
-    }
-
-  ];
-*/
-
 PubSub.subscribe( "menu-click", function( channel, opts ){
 
   // opts: { id, template, item, focusedWindow }
@@ -628,9 +363,10 @@ let updateUserStylesheet = function(){
   if( node ){
     node.parentNode.removeChild( node );
   }
-//  let f = path.join( process.cwd(), USER_STYLESHEET_PATH ); // + "?" + new Date().getTime();
-  let f = USER_STYLESHEET_PATH ; // + "?" + new Date().getTime();
-  Utils.ensureCSS( f, { 'data-position': 'last', 'data-id': 'user-stylesheet' }, document.head );
+  
+  Utils.ensureCSS( USER_STYLESHEET_PATH, 
+    { 'data-position': 'last', 'data-id': 'user-stylesheet' }, 
+    document.head );
 
 };
 
@@ -644,23 +380,9 @@ let updateMenu = function(){
   node = Utils.findNode( "reload", template );
   if( node ) node.enabled = Settings.allow_reloading;
 
-//  // set checked for top/bottom, left/right
-//  node = Utils.findNode( "top-and-bottom", template );
-//  if( node ) node.checked = splitWindow.vertical;
-//
-//  node = Utils.findNode( "side-by-side", template );
-//  if( node ) node.checked = !splitWindow.vertical;
-
-  // editor, shell visible
-//  node = Utils.findNode( "editor-check", template );
-//  if( node ) node.checked = splitWindow.visible[0];
-//
-//  node = Utils.findNode( "shell-check", template );
-//  if( node ) node.checked = splitWindow.visible[1];
-
   // set recent files
   node = Utils.findNode( "open-recent", template );
-  let recent = Settings.recent_files || [];
+  let recent = editor.getRecentFiles();
   let elements = recent.map( function( file ){
     return {
       label: file,
@@ -691,7 +413,6 @@ let updateMenu = function(){
           label: theme, type: 'radio', checked: (checked === theme),
           click: function(){ 
             Settings[which + "_theme"] = theme;
-            updateThemes();
           }
         };
       });
@@ -720,18 +441,20 @@ let updateThemes = function(){
 PubSub.subscribe( "menu-update", updateMenu );
 
 let updateLayout = function( dir, reset ){
+
   splitWindow.setDirection(dir);
-  //Settings.layoutDirection = dir;
+
   if( reset ){
     splitWindow.setVisible(0, true);
     splitWindow.setVisible(1, true);
     splitWindow.setSizes( 50, 50 );
   }
+
   shell.refresh();
   editor.refresh();
   resizeShell();
+
 };
-  
 
 // on load, set up document
 document.addEventListener("DOMContentLoaded", function(event) {
@@ -760,7 +483,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
   splitWindow = new Splitter({ 
     node: document.body, 
     size: layout.splitWindow,
-//    direction: Settings.layoutDirection || Splitter.prototype.Direction.HORIZONTAL 
     direction: Settings.layout_vertical ? 
       Splitter.prototype.Direction.VERTICAL : 
       Splitter.prototype.Direction.HORIZONTAL
@@ -849,8 +571,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
   });
 
   if( R.initialized ) resizeShell();
-
-  console.info( process.cwd());
 
 });
 

@@ -7,3 +7,4 @@ bert-shell-win32-ia32
 bert-shell-win32-x64
 ext
 !ext/**.md
+bert-shell-settings.json

@@ -253,6 +253,19 @@ const PipeR = function () {
 
           break;
 
+        case "control":
+
+            if( packet.data === "quit" ){
+              try {
+                client.end();
+                client.destroy();
+              }
+              catch( e ){
+                console.info(e);
+              }
+              instance.emit( "pipe-closed" );
+            }
+
         default:
           //if (opts.permissive) 
           {
