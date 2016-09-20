@@ -34,7 +34,8 @@ module.exports = {
     new webpack.HotModuleReplacementPlugin(),
     new CopyWebpackPlugin([
       { from: 'ext' },
-      { from: 'src/root' }
+      { from: 'src/root' },
+      { from: 'package.json' }
     ]),
     new HtmlWebpackPlugin({
       minify: htmlOptions,
