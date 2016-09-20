@@ -183,6 +183,18 @@ const chainProxy = function( property, value, update, root, path ){
 
 };
 
+const initDefaults = function( target, defaults ){
+
+  if( !defaults || ( typeof defaults !== "object" )) return;
+  Object.keys( defaults ).forEach( function( key ){
+    if( typeof target[key] === "undefined" ){
+      target[key] = defaults[key];
+    }
+    else initDefaults( target[key], defaults[key] );
+  });
+
+};
+
 // this is implemented as a factory. to share settings instances across 
 // modules, create it somewhere (early) and stick it in the global object.
 
@@ -243,6 +255,10 @@ module.exports = {
     });
 
     Settings.restore();
+
+    if( options.defaults ){
+      initDefaults( Settings, options.defaults );
+    }
 
     if( options.type === "file" && options.watch ){
       

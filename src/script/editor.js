@@ -73,14 +73,14 @@ const Editor = function(opts){
   PubSub.subscribe( "settings-change", function( channel, update ){
     if( update ){
       switch( update.key ){
-      case "editor_hide_linenumbers":
+      case "editor.line_numbers":
         editors.forEach( function( editor ){
-          editor.cm.setOption( "lineNumbers", !Settings.editor_hide_linenumbers );
+          editor.cm.setOption( "lineNumbers", Settings.editor.line_numbers );
         });
         break;
-      case "editor_hide_status_bar":
+      case "editor.status_bar":
         document.getElementById( "statusBar" ).style.display = 
-          Settings.editor_hide_status_bar ? "none" : "";
+          Settings.editor.status_bar ? "" : "none";
         break;
       }
     }
@@ -130,7 +130,7 @@ const Editor = function(opts){
   
   let nodes = Utils.parseHTML( htmlTemplate, opts.node );
 
-  if( Settings.editor_hide_status_bar ) nodes.statusBar.style.display = "none";
+  if( !Settings.editor.status_bar ) nodes.statusBar.style.display = "none";
 
   /**
    * mark as dirty (or clean)
@@ -496,13 +496,13 @@ const Editor = function(opts){
     editor.cm =  CodeMirror( function(elt){
       editor.node.appendChild( elt );
       }, { 
-        lineNumbers: !Settings.editor_hide_linenumbers,
+        lineNumbers: Settings.editor.line_numbers,
         value: editor.value || "",
         mode: "", // mode gets handled later
         // allowDropFileTypes: opts.drop_files,
         viewportMargin: 50
     });
-    editor.cm.setOption( "theme", Settings.editor_theme || "default" );
+    editor.cm.setOption( "theme", Settings.editor.theme || "default" );
     editor.cm.setOption("matchBrackets", true);
 
     editor.cm.setOption("extraKeys", {
@@ -685,7 +685,7 @@ const Editor = function(opts){
    */
   this.updateTheme = function(){
     editors.forEach( function( editor ){
-      editor.cm.setOption( "theme", Settings.editor_theme || "default" );
+      editor.cm.setOption( "theme", Settings.editor.theme || "default" );
     })
   };
 

@@ -103,6 +103,37 @@ Utils.findNode = function( id, template ){
 };
 
 /**
+ * utiltity method: dereference field, possibly deep.
+ * for arrays, use dot syntax.
+ */
+let dereference_get = function( root, ref ){
+  if( !ref ) return root;
+  ref = ref.split( "." );
+  while( ref.length ){
+    let key = ref.shift();
+    if( key ) root = root[ key ];
+  }
+  return root;
+}
+
+/**
+ * utiltity method: dereference field, possibly deep.
+ * for arrays, use dot syntax.
+ */
+let dereference_set = function( root, ref, value ){
+  if( !ref ) {
+    root = value;
+    return;
+  }
+  ref = ref.split( "." );
+  while( ref.length > 1 ){
+    let key = ref.shift();
+    if( key ) root = root[ key ];
+  }
+  root[ref[0]] = value;
+}
+
+/**
  * attach functions to a menu template.  this only needs to happen 
  * once (you can change them later if you want).  split from the 
  * updateSettings function, since we may call that more often.
@@ -134,7 +165,7 @@ Utils.updateMenu = function( Settings, template ){
     else {
       if( template.setting ){
         template.click = function(item){
-          Settings[template.setting] = template.invert ? !item.checked : item.checked;
+          dereference_set( Settings, template.setting, template.invert ? !item.checked : item.checked );
         }
       }
       else if( template.id ){
@@ -162,7 +193,7 @@ Utils.updateSettings = function( Settings, template ){
     }
     else {
       if( template.setting ){
-        let checked = !!Settings[template.setting];
+        let checked = !!dereference_get( Settings, template.setting );
         template.checked = template.invert ? !checked : checked;
       }
     }

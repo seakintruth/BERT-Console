@@ -96,14 +96,14 @@ module.exports = [
       {
         label: "Show Editor",
         type: "checkbox",
-        setting: "hide_editor",
+        setting: "editor.hide",
         invert: true,
         accelerator: "Ctrl+Shift+E"
       },
       {
         label: "Show R Shell",
         type: "checkbox",
-        setting: "hide_shell",
+        setting: "shell.hide",
         invert: true,
         accelerator: "Ctrl+Shift+R"
       },
@@ -113,13 +113,13 @@ module.exports = [
           {
             label: "Top and Bottom",
             type: "radio",
-            setting: "layout_vertical",
+            setting: "layout.vertical",
             invert: false
           },
           {
             label: "Side by Side",
             type: "radio",
-            setting: "layout_vertical",
+            setting: "layout.vertical",
             invert: true
           }
         ]
@@ -137,14 +137,12 @@ module.exports = [
           {
             label: "Show Line Numbers",
             type: "checkbox",
-            setting: "editor_hide_linenumbers",
-            invert: true
+            setting: "editor.line_numbers"
           },
           {
             label: "Show Status Bar",
             type: "checkbox",
-            setting: "editor_hide_status_bar",
-            invert: true
+            setting: "editor.status_bar"
           }
         ]
       },
@@ -158,12 +156,17 @@ module.exports = [
           {
             label: "Update Console Width on Resize",
             type: "checkbox",
-            setting: "auto_resize"
+            setting: "shell.resize"
           },
           {
             label: "Wrap Long Lines",
             type: "checkbox",
-            setting: "shell_wrap"
+            setting: "shell.wrap"
+          },
+          {
+            label: "Function Tips",
+            type: "checkbox",
+            setting: "shell.function_tips"
           }
         ]
       },
@@ -178,7 +181,7 @@ module.exports = [
           {
             label: "Allow Reloading",
             type: "checkbox",
-            setting: "allow_reloading"
+            setting: "developer.allow_reloading"
           },
           {
             id: "reload",

@@ -41,7 +41,14 @@ const Shell = require( "cmjs-shell" );
 // the app home directory (i.e. root)?  
 
 global.Settings = require( "./settings.js" ).createStore({ 
-  type: "file", key: "bert-shell-settings.json", watch: true });
+  type: "file", key: "bert-shell-settings.json", watch: true, defaults: {
+    layout: {},
+    shell: { function_tips: true },
+    editor: { line_numbers: true, status_bar: true },
+    developer: {}
+  }});
+
+// create some setting defaults -- in particular, the containing objects
 
 // local modules
 const Splitter = require( "./splitter.js" );
@@ -131,36 +138,36 @@ PubSub.subscribe( "settings-change", function( channel, update ){
 
   switch( update.key ){
 
-  case "shell_theme":
-  case "editor_theme":
+  case "shell.theme":
+  case "editor.theme":
     updateThemes();
     break;
 
-  case "hide_shell":
-    splitWindow.setVisible( 1, !Settings.hide_shell );
-    if( !Settings.hide_shell ) shell.refresh();
+  case "shell.hide":
+    splitWindow.setVisible( 1, !Settings.shell.hide );
+    if( !Settings.shell.hide ) shell.refresh();
     updateFocusMessage();
     resizeShell(true);
     break;
 
-  case "hide_editor":
-    splitWindow.setVisible( 0, !Settings.hide_editor );
-    if( !Settings.hide_editor ) editor.refresh();
+  case "editor.hide":
+    splitWindow.setVisible( 0, !Settings.editor.hide );
+    if( !Settings.editor.hide ) editor.refresh();
     updateFocusMessage();
     resizeShell(true);
     break;  
 
-  case "layout_vertical":
-    updateLayout( Settings.layout_vertical ? 
+  case "layout.vertical":
+    updateLayout( Settings.layout.vertical ? 
       Splitter.prototype.Direction.VERTICAL : 
       Splitter.prototype.Direction.HORIZONTAL, true  );
     break;
 
-  case "auto_resize":
-    if( Settings.auto_resize ) resizeShell();
+  case "shell.resize":
+    if( Settings.shell.resize ) resizeShell();
     break;
 
-  case "allow_reloading":
+  case "developer.allow_reloading":
 
     // this is overkill here, because all we need to do 
     // is enable the reload item
@@ -168,8 +175,8 @@ PubSub.subscribe( "settings-change", function( channel, update ){
     updateMenu();
     break;
 
-  case "shell_wrap":
-    shell.setOption( "lineWrapping", Settings.shell_wrap );
+  case "shell.wrap":
+    shell.setOption( "lineWrapping", Settings.shell.wrap );
     shell.refresh();
     break;
 
@@ -182,7 +189,7 @@ PubSub.subscribe( "settings-change", function( channel, update ){
 let lastShellSize = -1;
 
 const resizeShell = function(){
-  if( Settings.auto_resize ){
+  if( Settings.shell.resize ){
     let w = shell.get_width_in_chars();
     if( lastShellSize === w ) return;
     lastShellSize = Math.max( 10, w );
@@ -226,7 +233,7 @@ window.addEventListener( "keydown", function(e){
 
 var tip_function = function (text, pos) {
 
-  if (Settings.hide_function_tips) return;
+  if (!Settings.shell.function_tips) return;
   R.internal([ "autocomplete", text, pos ], "autocomplete").then(function (obj) {
 
     if (obj['signature'])  shell.show_function_tip(obj['signature']);
@@ -343,7 +350,7 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     break;
 
   case "reload": 
-    if (opts.focusedWindow && Settings.allow_reloading){
+    if (opts.focusedWindow && Settings.developer.allow_reloading){
       global.allowReload = true;
       opts.focusedWindow.reload()
     }
@@ -378,7 +385,7 @@ let updateMenu = function(){
 
   // set enabled for reload
   node = Utils.findNode( "reload", template );
-  if( node ) node.enabled = Settings.allow_reloading;
+  if( node ) node.enabled = Settings.developer.allow_reloading;
 
   // set recent files
   node = Utils.findNode( "open-recent", template );
@@ -406,13 +413,13 @@ let updateMenu = function(){
 
     ["editor", "shell"].forEach( function( which ){
       node = Utils.findNode( which + "-theme", template );
-      let checked = Settings[which + "_theme"] || ( which === "editor" ? "default" : "dark" );
+      let checked = Settings[which].theme || ( which === "editor" ? "default" : "dark" );
       
       node.submenu = themes.map( function( theme ){
         return {
           label: theme, type: 'radio', checked: (checked === theme),
           click: function(){ 
-            Settings[which + "_theme"] = theme;
+            Settings[which].theme = theme;
           }
         };
       });
@@ -426,11 +433,11 @@ let updateMenu = function(){
 
 let updateThemes = function(){
 
-  shell.setOption("theme", Settings.shell_theme || "dark");
+  shell.setOption("theme", Settings.shell.theme || "dark");
   shell.refresh();
   editor.updateTheme();
 
-  [Settings.shell_theme, Settings.editor_theme].forEach( function( theme ){
+  [Settings.shell.theme, Settings.editor.theme].forEach( function( theme ){
     if( theme && theme !== "default" ) {
       Utils.ensureCSS( `theme/${theme}.css`, { 'data-watch': true } ); 
     }
@@ -483,13 +490,13 @@ document.addEventListener("DOMContentLoaded", function(event) {
   splitWindow = new Splitter({ 
     node: document.body, 
     size: layout.splitWindow,
-    direction: Settings.layout_vertical ? 
+    direction: Settings.layout.vertical ? 
       Splitter.prototype.Direction.VERTICAL : 
       Splitter.prototype.Direction.HORIZONTAL
   });
 
-  if( Settings.hide_editor ) splitWindow.setVisible( 0, false );
-  if( Settings.hide_shell ) splitWindow.setVisible( 1, false );
+  if( Settings.editor.hide ) splitWindow.setVisible( 0, false );
+  if( Settings.shell.hide ) splitWindow.setVisible( 1, false );
 
   let shellContainer = splitWindow.panes[1];
   
@@ -511,7 +518,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     }
   });
 
-  shell.setOption( "lineWrapping", !!Settings.shell_wrap );
+  shell.setOption( "lineWrapping", !!Settings.shell.wrap );
 
   const shellContextMenu = Menu.buildFromTemplate([
     { label: 'Select All', click: function(){
@@ -532,7 +539,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   editor = new Editor({ node: splitWindow.panes[0] });
 
-  if (Settings["line.wrapping"]) shell.setOption("lineWrapping", true);
+  if (Settings["shell.wrap"]) shell.setOption("lineWrapping", true);
   shell.setOption("matchBrackets", true);
 
   shell.getCM().on( "focus", function(){
