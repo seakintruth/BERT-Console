@@ -35,46 +35,65 @@ const createPanel = function(){
   document.body.appendChild( panel );
 };
 
-/*
-module.exports.notify = function( title, body, opts ){
+module.exports.notify = function( opts ){
 
   if( !panel ) createPanel();
   opts = opts || {};
 
   let node = document.createElement( "div" );
   node.className = "notifier-message " + opts.className || "";
+  node.style.opacity = '0';
 
-  Utils.parseHTML( `
-    <div class='notifier-title'>${title}</div>
-    <div class='notifier-body'>${body}</div>
-  `, node );
+  Utils.parseHTML( `<div class='notifier-icon'></div>
+    <div class='notifier-title'>${opts.title || ""}</div>
+    <div class='notifier-body'>${opts.body || ""}</div>
+    <div class='footer'>${opts.footer || ""}</div>`, node );
+
+  // default to top of stack, optionally on bottom
 
   if( opts.bottom ) panel.appendChild( node );
-  else {
-    panel.insertBefore( node, panel.firstChild );
-  }
+  else panel.insertBefore( node, panel.firstChild );
 
-  let timer = null;
-  let click = function(){
-    if( timer ) clearTimeout( timer );
-    node.style.opacity=0;
-  }
-  let expire = function(){
-    node.removeEventListener( "transitionend", expire );
-    node.addEventListener( "transitionend", cleanup );
-    if( opts.timeout !== Infinity )
-      timer = setTimeout( function(){ node.style.opacity=0; }, ( opts.timeout || DEFAULT_TIMEOUT ) * 1000 );
-  };
-  let cleanup = function(){
-    node.removeEventListener( "click", click );
-    node.removeEventListener( "transitionend", cleanup );
-    node.parentNode.removeChild( node );
-  }
-  node.addEventListener( "click", click );
-  node.addEventListener( "transitionend", expire );
+  return new Promise( function( resolve, reject ){
 
-  setTimeout( function(){ node.style.opacity=1; }, 1);
+    let timer = null;
+    let clicked = false;
+    let expiring = false;
+
+    let click = function(){
+      if( timer ) clearTimeout( timer );
+      clicked = true;
+      if( !expiring ){
+        node.removeEventListener( "transitionend", expire );
+        node.removeEventListener( "transitionend", cleanup );
+        node.addEventListener( "transitionend", cleanup );
+        setTimeout( function(){ node.style.opacity = 0; }, 1 );
+      }
+    };
+
+    let expire = function(){
+      node.removeEventListener( "transitionend", expire );
+      node.addEventListener( "transitionend", cleanup );
+      if( opts.timeout !== Infinity ){
+        let ms = ( opts.timeout || DEFAULT_TIMEOUT ) * 1000;
+        timer = setTimeout( function(){ expiring = true; node.style.opacity = 0; }, ms );
+      }
+    };
+
+    let cleanup = function(){
+      node.removeEventListener( "click", click );
+      node.removeEventListener( "transitionend", cleanup );
+      node.removeEventListener( "transitionend", expire ); // JIC
+      node.parentNode.removeChild( node );
+      resolve( clicked ? "click" : "timeout" );
+    };
+
+    node.addEventListener( "click", click );
+    node.addEventListener( "transitionend", expire );
+
+    setTimeout( function(){ node.style.opacity=1; }, 1);
+
+  });
 
 };
-*/
 

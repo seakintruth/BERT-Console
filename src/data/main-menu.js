@@ -201,15 +201,8 @@ module.exports = [
     label: "Help",
     submenu: [
       {
-        id: "help-about",
-        label: "About"
-      },
-      {
         id: "help-learn-more",
         label: "Learn More"
-      },
-      {
-        type: "separator"
       },
       {
         id: "help-feedback",

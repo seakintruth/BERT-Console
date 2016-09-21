@@ -468,6 +468,40 @@ let updateLayout = function( dir, reset ){
 
 };
 
+PubSub.subscribe( "settings-error", function( channel, args ){
+
+  let msg = "Invalid settings file";
+  if( args.exception ) msg = msg + ": " + args.exception.message;
+
+  Notifier.notify({
+    title: "WARNING",
+    className: "warning",
+    body: msg,
+    timeout: 9,
+    footer: "OK"
+  });
+});
+
+PubSub.subscribe( "file-read-error", function( channel, args ){
+  Notifier.notify({
+    title: "ERROR",
+    className: "error",
+    body: "reading file: " + args.err.message,
+    timeout: 9,
+    footer: "OK"
+  });
+});
+
+PubSub.subscribe( "file-write-error", function( channel, args ){
+  Notifier.notify({
+    title: "ERROR",
+    className: "error",
+    body: "writing file " + args.err.message,
+    timeout: 9,
+    footer: "OK"
+  });
+});
+
 // on load, set up document
 document.addEventListener("DOMContentLoaded", function(event) {
 
@@ -583,6 +617,23 @@ document.addEventListener("DOMContentLoaded", function(event) {
   });
 
   if( R.initialized ) resizeShell();
+
+  /*
+  let classes = [ "warning", "error", "information", "question", "" ];
+  let renotify = function(){
+    setTimeout( function(){
+      let c = classes[ Math.floor( Math.random() * classes.length )];
+      Notifier.notify({ 
+        className: c,
+        title: c.toUpperCase(), body: "garble taco beverage vagine", footer: "OK", timeout: 7
+      }).then( function( reason ){
+        console.info( "Reason:", reason );
+        setTimeout( function(){ renotify() }, 1 );
+      })
+    }, 500 );
+  };
+  renotify();
+  */
 
 });
 

@@ -654,7 +654,7 @@ const Editor = function(opts){
     return new Promise( function( resolve, reject ){
       fs.readFile( file, { encoding: 'utf8' }, function( err, contents ){
         if( err ){
-          PubSub.publish( "file-open-error", err );
+          PubSub.publish( "file-read-error", { err: err, file: file });
 
           // remove from recent files? ... 
           // depends on the error, probably (permissions or locked: no, 
@@ -704,7 +704,7 @@ const Editor = function(opts){
     return new Promise( function( resolve, reject ){
       fs.readFile( editor.path, { encoding: 'utf8' }, function( err, contents ){
         if( err ){
-          PubSub.publish( "file-open-error", err );
+          PubSub.publish( "file-read-error", { err: err, file: editor.path });
         }
         else {
           editor.cm.getDoc().setValue( contents );
@@ -777,7 +777,7 @@ const Editor = function(opts){
       let contents = editor.cm.getValue();
       ignoreChanges = editor.path;
       fs.writeFile( editor.path, contents, { encoding: "utf8" }, function(err){
-        if( err ) PubSub.publish( "file-save-error", err );
+        if( err ) PubSub.publish( "file-write-error", { err: err, file: editor.path });
         else markDirty(false);
         ignoreChanges = null;
       })

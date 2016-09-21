@@ -136,14 +136,21 @@ FileBase.prototype.restore = function(){
   // prior to accessing any settings.  as long as settings is not too 
   // large, this should not be a problem.
 
-  let contents, exists = false;
+  let js = {}, contents, exists = false;
   try { 
     contents = fs.readFileSync( this.__storage_path__, { encoding: "utf8" }) || "";
     exists = true;
   } catch( e ){
     contents = "{}";
   }
-  Object.assign( this, JSON.parse( Utils.scrubJSON( contents ) ));
+
+  try {
+    js = JSON.parse( Utils.scrubJSON( contents ));
+  }
+  catch( e ){
+      PubSub.publish( "settings-error", { exception: e });
+  }
+  Object.assign( this, js );
 
   // if the file doesn't exist, try to create it.  this should throw
   // an exception if the path is invalid for some reason (not exist, locked)
@@ -261,8 +268,17 @@ module.exports = {
         if( base.__setting__ ) return;
 
         fs.readFile( options.key, { encoding: "utf8" }, function( err, contents ){
-          if( err ) throw( "read settings file failed");
-          let js = JSON.parse( Utils.scrubJSON( contents ));
+          let js = {};
+          if( err ) {
+            PubSub.publish( "settings-error", { err: err });
+            throw( "read settings file failed");
+          }
+          try {
+            js = JSON.parse( Utils.scrubJSON( contents ));
+          }
+          catch( ex ){
+            PubSub.publish( "settings-error", { exception: ex });
+          }
           base.__reverting__ = true;
           //Object.assign( Settings, js );
           Utils.updateDiff( Settings, js );
