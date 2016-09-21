@@ -143,7 +143,7 @@ FileBase.prototype.restore = function(){
   } catch( e ){
     contents = "{}";
   }
-  Object.assign( this, JSON.parse( contents ));
+  Object.assign( this, JSON.parse( Utils.scrubJSON( contents ) ));
 
   // if the file doesn't exist, try to create it.  this should throw
   // an exception if the path is invalid for some reason (not exist, locked)
@@ -222,7 +222,8 @@ module.exports = {
       if( !target.__reverting__ ) target.save();
 
       // broadcast (optionally)
-      if( options.event ) PubSub.publish( options.event, { key: property, val: value });
+      //if( options.event ) PubSub.publish( options.event, { key: property, val: value });
+      if( options.event ) PubSub.publish( options.event, { key: property, val: Utils.dereference_get( target, property )});
 
     }
 
@@ -261,10 +262,12 @@ module.exports = {
 
         fs.readFile( options.key, { encoding: "utf8" }, function( err, contents ){
           if( err ) throw( "read settings file failed");
-          let js = JSON.parse( contents );
+          let js = JSON.parse( Utils.scrubJSON( contents ));
           base.__reverting__ = true;
-          Object.assign( Settings, js );
+          //Object.assign( Settings, js );
+          Utils.updateDiff( Settings, js );
           base.__reverting__ = false;
+
         });
       });
 

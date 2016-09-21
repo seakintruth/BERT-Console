@@ -116,10 +116,46 @@ Utils.initDefaults = function( target, defaults ){
 };
 
 /**
+ * copy all properties from object -> target where the 
+ * value differs.  leave === properties alone.  for objects
+ * and arrays, iterate.
+ */
+Utils.updateDiff = function( target, object ){
+
+  Object.keys( object ).forEach( function( key ){
+    let elt = object[key];
+    let comp = target[key];
+
+    if( elt === comp ) return; // nothing to do
+
+    if( typeof elt === "object" ){
+      if( Array.isArray( elt )){  
+        if( !Array.isArray( comp )){
+          target[key] = [];
+        }
+        for( let i = 0; i< elt.length; i++ ){
+          if( target[key][i] !== elt[i] ) target[key][i] = elt[i];
+        }
+      } 
+      else { // non-array object
+        if( typeof comp !== "object" ){
+          target[key] = {};
+        }
+        Utils.updateDiff( target[key], elt );
+      }
+    }
+    else {
+      target[key] = elt;
+    }
+  });
+
+};
+
+/**
  * utiltity method: dereference field, possibly deep.
  * for arrays, use dot syntax.
  */
-let dereference_get = function( root, ref ){
+Utils.dereference_get = function( root, ref ){
   if( !ref ) return root;
   ref = ref.split( "." );
   while( ref.length ){
@@ -133,7 +169,7 @@ let dereference_get = function( root, ref ){
  * utiltity method: dereference field, possibly deep.
  * for arrays, use dot syntax.
  */
-let dereference_set = function( root, ref, value ){
+Utils.dereference_set = function( root, ref, value ){
   if( !ref ) {
     root = value;
     return;
@@ -145,6 +181,12 @@ let dereference_set = function( root, ref, value ){
   }
   root[ref[0]] = value;
 }
+
+Utils.scrubJSON = function( text ){
+  text = text.replace( /\/\*.*?\*\//g, "" );
+  text = text.replace( /\/\/.*?\n/g, "\n" );
+  return text;
+};
 
 /**
  * attach functions to a menu template.  this only needs to happen 
@@ -178,7 +220,7 @@ Utils.updateMenu = function( Settings, template ){
     else {
       if( template.setting ){
         template.click = function(item){
-          dereference_set( Settings, template.setting, template.invert ? !item.checked : item.checked );
+          Utils.dereference_set( Settings, template.setting, template.invert ? !item.checked : item.checked );
         }
       }
       else if( template.id ){
@@ -206,7 +248,7 @@ Utils.updateSettings = function( Settings, template ){
     }
     else {
       if( template.setting ){
-        let checked = !!dereference_get( Settings, template.setting );
+        let checked = !!Utils.dereference_get( Settings, template.setting );
         template.checked = template.invert ? !checked : checked;
       }
     }

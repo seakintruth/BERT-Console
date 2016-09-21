@@ -35,7 +35,6 @@ const fs = require( "fs" );
 const path = require( "path" );
 const chokidar = window.require('chokidar');
 const Shell = require( "cmjs-shell" );
-//const Shell = require( "../../../constructr/cmjs-shell/shell.js" );
 
 // initialize the global settings store.  this is file-based.  put it in 
 // the app home directory (i.e. root)?  
@@ -43,8 +42,7 @@ const Shell = require( "cmjs-shell" );
 global.Settings = require( "./settings.js" ).createStore({ 
   type: "file", key: "bert-shell-settings.json", watch: true, defaults: {
     layout: {},
-    shell: { function_tips: true },
-    editor: { line_numbers: true, status_bar: true },
+    shell: { functionTips: true },
     developer: {}
   }});
 
@@ -167,7 +165,7 @@ PubSub.subscribe( "settings-change", function( channel, update ){
     if( Settings.shell.resize ) resizeShell();
     break;
 
-  case "developer.allow_reloading":
+  case "developer.allowReloading":
 
     // this is overkill here, because all we need to do 
     // is enable the reload item
@@ -203,7 +201,7 @@ PubSub.subscribe( "window-resize", function( channel ){
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
   Settings.layout = {
-    splitWindow: splitWindow.size.slice(0)
+    split: splitWindow.size.slice(0)
   }
   resizeShell();
 });
@@ -233,7 +231,7 @@ window.addEventListener( "keydown", function(e){
 
 var tip_function = function (text, pos) {
 
-  if (!Settings.shell.function_tips) return;
+  if (!Settings.shell.functionTips) return;
   R.internal([ "autocomplete", text, pos ], "autocomplete").then(function (obj) {
 
     if (obj['signature'])  shell.show_function_tip(obj['signature']);
@@ -350,7 +348,7 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     break;
 
   case "reload": 
-    if (opts.focusedWindow && Settings.developer.allow_reloading){
+    if (opts.focusedWindow && Settings.developer.allowReloading){
       global.allowReload = true;
       opts.focusedWindow.reload()
     }
@@ -385,7 +383,7 @@ let updateMenu = function(){
 
   // set enabled for reload
   node = Utils.findNode( "reload", template );
-  if( node ) node.enabled = Settings.developer.allow_reloading;
+  if( node ) node.enabled = Settings.developer.allowReloading;
 
   // set recent files
   node = Utils.findNode( "open-recent", template );
@@ -470,7 +468,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   updateUserStylesheet();
 
   let layout = Settings.layout || {
-    splitWindow: [50, 50]
+    split: [50, 50]
   };
 
   /*
@@ -489,7 +487,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   splitWindow = new Splitter({ 
     node: document.body, 
-    size: layout.splitWindow,
+    size: layout.split,
     direction: Settings.layout.vertical ? 
       Splitter.prototype.Direction.VERTICAL : 
       Splitter.prototype.Direction.HORIZONTAL

@@ -24,13 +24,18 @@
 
 require( "../style/editor.css" );
 
+const chokidar = window.require('chokidar');
+
 // some default settings in the global settings object
 
 const Utils = require( './utils.js' );
 Utils.initDefaults( Settings, {
   editor: {
-    line_numbers: true,
-    status_bar: true
+    CodeMirror: {
+      lineNumbers: true,
+      matchBrackets: true
+    },
+    statusBar: true
   }
 });
 
@@ -71,6 +76,8 @@ Object.keys( supportedLanguages ).forEach( function( language ){
   });
 })
 
+// --- editor class ---------------------------------------
+
 const Editor = function(opts){
 
   if( !opts || !opts.node ) throw( "node required" );
@@ -80,17 +87,29 @@ const Editor = function(opts){
   let tabs = [];
 
   PubSub.subscribe( "settings-change", function( channel, update ){
+
     if( update ){
-      switch( update.key ){
-      case "editor.line_numbers":
+      let m = update.key.match( /^editor\.CodeMirror\.(.*?)$/ );
+      if( m ){
+        console.info( "UPDATE", m[1], update.val );
         editors.forEach( function( editor ){
-          editor.cm.setOption( "lineNumbers", Settings.editor.line_numbers );
-        });
-        break;
-      case "editor.status_bar":
-        document.getElementById( "statusBar" ).style.display = 
-          Settings.editor.status_bar ? "" : "none";
-        break;
+          editor.cm.setOption( m[1], update.val );
+        })
+      }
+      else {
+        switch( update.key ){
+          /*
+        case "editor.line_numbers":
+          editors.forEach( function( editor ){
+            editor.cm.setOption( "lineNumbers", Settings.editor.line_numbers );
+          });
+          break;
+          */
+        case "editor.statusBar":
+          document.getElementById( "statusBar" ).style.display = 
+            Settings.editor.statusBar ? "" : "none";
+          break;
+        }
       }
     }
   });
@@ -139,16 +158,18 @@ const Editor = function(opts){
   
   let nodes = Utils.parseHTML( htmlTemplate, opts.node );
 
-  if( !Settings.editor.status_bar ) nodes.statusBar.style.display = "none";
+  if( !Settings.editor.statusBar ) nodes.statusBar.style.display = "none";
 
   /**
    * mark as dirty (or clean)
    */
-  let markDirty = function( dirty ){
-    active.dirty = dirty;
+  let markDirty = function( dirty, editor ){
+    if( !editor ) editor = active;
+
+    editor.dirty = dirty;
     let index = 0;
     for( let i = 0; i< editors.length; i++ ){
-      if( editors[i] === active ){
+      if( editors[i] === editor ){
         index = i;
         break;
       }
@@ -199,6 +220,8 @@ const Editor = function(opts){
 
     active.cm.refresh();
     active.cm.focus();
+
+    FileSettings.activeTab = index;
 
   };
 
@@ -262,6 +285,53 @@ const Editor = function(opts){
     }
 
   };
+
+  // --- file watching --------------------------------------
+
+  let watcher = null;
+  let ignoreChanges = null;
+
+  let fileChanged = function( file ){
+
+    console.info( "FC", file );
+
+    if( file === ignoreChanges ){
+      console.info( "ignored");
+      return;
+    }
+
+    editors.forEach( function( editor, index ){
+      if( editor.path === file ){
+        console.info( "Found it in tab", index, "dirty?", editor.dirty );
+        if( !editor.dirty ) revert( editor );
+      }
+    });
+
+  };
+
+  let watchFile = function( path ){
+
+    console.info( "watch file", path );
+
+    if( !watcher ){
+      console.info( "creating new watcher")
+      watcher = chokidar.watch( path, { persistent: true });
+      watcher.on( 'change', fileChanged );
+    }
+    else {
+      console.info( "adding to existing watcher" );
+      watcher.add( path );
+    }
+
+  };
+
+  let unwatchFile = function( path ){
+
+    console.info( "unwatch file", path );
+    watcher.unwatch( path );
+
+  };
+
 
   ////////////
 
@@ -505,14 +575,19 @@ const Editor = function(opts){
     editor.cm =  CodeMirror( function(elt){
       editor.node.appendChild( elt );
       }, { 
-        lineNumbers: Settings.editor.line_numbers,
+        // lineNumbers: Settings.editor.line_numbers,
         value: editor.value || "",
         mode: "", // mode gets handled later
         // allowDropFileTypes: opts.drop_files,
         viewportMargin: 50
     });
     editor.cm.setOption( "theme", Settings.editor.theme || "default" );
-    editor.cm.setOption("matchBrackets", true);
+
+    if( Settings.editor.CodeMirror ){
+      Object.keys( Settings.editor.CodeMirror ).forEach( function( key ){
+        editor.cm.setOption(key, Settings.editor.CodeMirror[key]);
+      });
+    }
 
     editor.cm.setOption("extraKeys", {
       Esc: function(cm){
@@ -541,6 +616,7 @@ const Editor = function(opts){
       activate( editor );
       updateStatus();
       PubSub.publish( "editor-new-tab" );
+      FileSettings.activeTab = tabs.length - 1;
     }
 
     ensureMode(editor);
@@ -581,6 +657,7 @@ const Editor = function(opts){
 
         }
         else {
+          watchFile( file );
           addEditor({ path: file, value: contents, node: opts.node }, toll);
           if( add ){
             // settings doesn't handle arrays
@@ -613,22 +690,35 @@ const Editor = function(opts){
     addEditor();
   };
 
-  /**
-   * API: revert (reload from disk).  this is undoable.
-   */
-  this.revert = function(){
+  /** internal revert method */
+  let revert = function( editor ){
+
+    let scrollInfo = editor.cm.getScrollInfo();
+    let cursor = editor.cm.getDoc().getCursor();
+
+    console.info( scrollInfo, cursor );
+
     return new Promise( function( resolve, reject ){
-      fs.readFile( active.path, { encoding: 'utf8' }, function( err, contents ){
+      fs.readFile( editor.path, { encoding: 'utf8' }, function( err, contents ){
         if( err ){
           PubSub.publish( "file-open-error", err );
         }
         else {
-          active.cm.getDoc().setValue( contents );
-          markDirty(false);
+          editor.cm.getDoc().setValue( contents );
+          editor.cm.scrollTo( scrollInfo.left, scrollInfo.top );
+          editor.cm.getDoc().setCursor( cursor );
+          markDirty(false, editor);
         }
         resolve();
       });
     });
+  };
+
+  /**
+   * API: revert (reload from disk).  this is undoable.
+   */
+  this.revert = function(){
+    return revert(active);
   };
 
   /**
@@ -682,9 +772,11 @@ const Editor = function(opts){
     if( !editor.path ) return saveAs(editor);
     else {
       let contents = editor.cm.getValue();
+      ignoreChanges = editor.path;
       fs.writeFile( editor.path, contents, { encoding: "utf8" }, function(err){
         if( err ) PubSub.publish( "file-save-error", err );
         else markDirty(false);
+        ignoreChanges = null;
       })
     }
   };
@@ -715,6 +807,11 @@ const Editor = function(opts){
       properties: ['openFile', 'NO_multiSelections']});
     
     if( !rslt ) return false;
+
+    // change watch from old path -> new path
+    if( editor.path ) unwatchFile( editor.path );
+    watchFile( rslt );
+
     editor.path = rslt;
     updateRecentFiles( editor.path );
 
@@ -925,7 +1022,7 @@ const Editor = function(opts){
       // suppose there are recent files, but all of them
       // error out; then we need to open a blank.
 
-      if( tabs.length ) selectTab( tabs.length - 1 );
+      if( tabs.length ) selectTab( Math.min( tabs.length - 1, FileSettings.activeTab || 0));
       else addEditor();
     });
   }

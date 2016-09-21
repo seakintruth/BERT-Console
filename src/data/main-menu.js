@@ -137,12 +137,12 @@ module.exports = [
           {
             label: "Show Line Numbers",
             type: "checkbox",
-            setting: "editor.line_numbers"
+            setting: "editor.CodeMirror.lineNumbers"
           },
           {
             label: "Show Status Bar",
             type: "checkbox",
-            setting: "editor.status_bar"
+            setting: "editor.statusBar"
           }
         ]
       },
@@ -166,7 +166,7 @@ module.exports = [
           {
             label: "Function Tips",
             type: "checkbox",
-            setting: "shell.function_tips"
+            setting: "shell.functionTips"
           }
         ]
       },
@@ -181,7 +181,7 @@ module.exports = [
           {
             label: "Allow Reloading",
             type: "checkbox",
-            setting: "developer.allow_reloading"
+            setting: "developer.allowReloading"
           },
           {
             id: "reload",

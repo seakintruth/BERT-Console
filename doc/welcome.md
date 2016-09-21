@@ -8,10 +8,11 @@ A couple of key things to know:
    own functions to Excel, either edit that file or (better yet) 
    add new files, and `source()` them in `functions.R`.
 
- * If you save a file in this editor, BERT will reload your R 
-   functions into Excel.  If you want to do something more 
-   complicated -- like recalculating your spreadsheet -- see the 
-   docs on watching files.
+ * When you save changes to the `functions.R` file, BERT will reload
+   it into Excel.  That's a function written into the file itself (at
+   the bottom).  If you want to turn that off, watch other files, or 
+   do something more complicated -- like recalculating the spreadsheet 
+   when you save changes -- see the docs on watching files.
  
  * The R shell is "live" and connected to Excel -- see the docs on 
    Talking to Excel from R, and the Excel Scripting (COM) Interface.

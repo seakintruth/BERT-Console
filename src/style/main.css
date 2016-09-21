@@ -17,6 +17,8 @@ body {
   overflow: hidden;
 }
 
+/* --- slight modification to the defaults ------------------------------ */
+
 .CodeMirror, .fixed-width { 
 	font-family: consolas;
 	font-size: 14.25px;
@@ -24,7 +26,7 @@ body {
 }
 
 .CodeMirror-gutters {
-  background: inherit;
+  background: #fff;
   border-right-color: #fff;
 }
 
@@ -42,17 +44,12 @@ body {
 .cm-s-default span.shell-piped-stream { color: #000 !important; }
 .cm-s-default span.shell-prompt-debug { color: red; }
 
-/** I just don't like the default */
 .cm-s-default .CodeMirror-matchingbracket { outline:1px solid #ccc; background: #ddd; color:black !important; }
 
 .CodeMirror-hints {
-
 	letter-spacing: .25px;
-	/* font-weight: bold; */
- 
 	font-family: consolas;
 	font-size: 11px;
-	
 }
 
 

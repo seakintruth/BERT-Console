@@ -1,4 +1,10 @@
 
+/**
+ * these styles are for layout in the editor 
+ * panel -- not styling the actual editor, which 
+ * is handled in main.css and the theme files.
+ */
+
 .orphans {
   display: none;
 }
