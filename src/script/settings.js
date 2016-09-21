@@ -223,7 +223,7 @@ module.exports = {
 
       // broadcast (optionally)
       //if( options.event ) PubSub.publish( options.event, { key: property, val: value });
-      if( options.event ) PubSub.publish( options.event, { key: property, val: Utils.dereference_get( target, property )});
+      if( options.event ) PubSub.publish( options.event, { key: property, val: Utils.dereference_get( target, property ), store: options.name });
 
     }
 

@@ -44,7 +44,7 @@ Utils.initDefaults( Settings, {
 // available in this module.
 
 let FileSettings = require( "./settings.js" ).createStore({ 
-  type: "localStorage", key: "file-settings", event: null });
+  name: "file", type: "localStorage", key: "file-settings", event: null });
 
 const remote = window.require('electron').remote;
 const dialog = remote.dialog;
@@ -114,34 +114,50 @@ const Editor = function(opts){
     }
   });
 
+  // we're required to pass the functions back to off()
+
+  let change_handler = function(){
+    markDirty( true );
+  };
+
+  let focus_handler = function(){
+    PubSub.publish( "focus-event", "editor" );
+  };
+
+  let cursorActivity_handler = function(){
+    updatePosition();
+  };
+
+  /**
+   * activate an editor.  this function unifies the event registration,
+   * don't monkey with events anywhere else
+   */
   let activate = function( editor ){
 
     if( active === editor ) return;
     if( active ){
-      active.cm.off( "cursorActivity" );
-      active.cm.off( "change" );
-      active.cm.off( "focus" );
+
+      // disable events -- requires the functions again
+
+      active.cm.off( "change", change_handler );
+      active.cm.off( "focus", focus_handler );
+      active.cm.off( "cursorActivity", cursorActivity_handler );
+
     }
     active = editor;
 
+    // you can pass null just to turn off events
+
     if( !active ) return;
 
-    if( findActive ){
-      search(true);
-    }
-    else {
-      active.cm.find.clear();
-    }
+    if( findActive ) search(true);
+    else active.cm.find.clear();
 
-    active.cm.on( "cursorActivity", function(){
-      updatePosition();
-    });
-    active.cm.on( "change", function(){
-      markDirty( true );
-    });
-    active.cm.on( "focus", function(){
-      PubSub.publish( "focus-event", "editor" );
-    });
+    // monitor events
+
+    active.cm.on( "change", change_handler );
+    active.cm.on( "focus", focus_handler );
+    active.cm.on( "cursorActivity", cursorActivity_handler );
 
     updateStatus();
 
@@ -273,6 +289,8 @@ const Editor = function(opts){
       FileSettings.openFiles = tmp;
     }
 
+    if( editor.path ) unwatchFile( editor.path );
+
     editor.node.parentNode.removeChild( editor.node );
     editors.splice( index, 1 );
 
@@ -293,16 +311,11 @@ const Editor = function(opts){
 
   let fileChanged = function( file ){
 
-    console.info( "FC", file );
-
-    if( file === ignoreChanges ){
-      console.info( "ignored");
-      return;
-    }
+    // we saved it
+    if( file === ignoreChanges ) return;
 
     editors.forEach( function( editor, index ){
       if( editor.path === file ){
-        console.info( "Found it in tab", index, "dirty?", editor.dirty );
         if( !editor.dirty ) revert( editor );
       }
     });
@@ -311,27 +324,19 @@ const Editor = function(opts){
 
   let watchFile = function( path ){
 
-    console.info( "watch file", path );
-
     if( !watcher ){
-      console.info( "creating new watcher")
       watcher = chokidar.watch( path, { persistent: true });
       watcher.on( 'change', fileChanged );
     }
     else {
-      console.info( "adding to existing watcher" );
       watcher.add( path );
     }
 
   };
 
   let unwatchFile = function( path ){
-
-    console.info( "unwatch file", path );
     watcher.unwatch( path );
-
   };
-
 
   ////////////
 
@@ -695,8 +700,6 @@ const Editor = function(opts){
 
     let scrollInfo = editor.cm.getScrollInfo();
     let cursor = editor.cm.getDoc().getCursor();
-
-    console.info( scrollInfo, cursor );
 
     return new Promise( function( resolve, reject ){
       fs.readFile( editor.path, { encoding: 'utf8' }, function( err, contents ){

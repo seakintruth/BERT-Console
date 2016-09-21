@@ -154,6 +154,11 @@ module.exports = [
             label: "Theme"
           },
           {
+            label: "Show Function Tips",
+            type: "checkbox",
+            setting: "shell.functionTips"
+          },
+          {
             label: "Update Console Width on Resize",
             type: "checkbox",
             setting: "shell.resize"
@@ -162,11 +167,6 @@ module.exports = [
             label: "Wrap Long Lines",
             type: "checkbox",
             setting: "shell.wrap"
-          },
-          {
-            label: "Function Tips",
-            type: "checkbox",
-            setting: "shell.functionTips"
           }
         ]
       },

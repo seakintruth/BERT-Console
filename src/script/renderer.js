@@ -39,14 +39,21 @@ const Shell = require( "cmjs-shell" );
 // initialize the global settings store.  this is file-based.  put it in 
 // the app home directory (i.e. root)?  
 
+// settings has some defaults -- in particular, the containing objects
+
 global.Settings = require( "./settings.js" ).createStore({ 
-  type: "file", key: "bert-shell-settings.json", watch: true, defaults: {
-    layout: {},
+  name: "general", type: "file", key: "bert-shell-settings.json", watch: true, defaults: {
+    layout: { vertical: false },
     shell: { functionTips: true },
     developer: {}
   }});
 
-// create some setting defaults -- in particular, the containing objects
+// layout settings are in localStorage instead of the settings file
+
+global.LayoutSettings = require( "./settings.js" ).createStore({
+  name: "layout", event: null, type: "localStorage", key: "layout", defaults: {
+    split: [50, 50]
+  }});
 
 // local modules
 const Splitter = require( "./splitter.js" );
@@ -200,7 +207,7 @@ PubSub.subscribe( "window-resize", function( channel ){
 });
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
-  Settings.layout = {
+  LayoutSettings.layout = {
     split: splitWindow.size.slice(0)
   }
   resizeShell();
@@ -467,7 +474,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   // webpack inserts css as style blocks, so we need to ensure that this is last.  
   updateUserStylesheet();
 
-  let layout = Settings.layout || {
+  let layout = LayoutSettings.layout || {
     split: [50, 50]
   };
 
