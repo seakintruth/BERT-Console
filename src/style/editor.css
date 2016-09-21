@@ -53,11 +53,12 @@
 }
 
 .editor-tab-bar .tab-label:before {
-  content: "\00a0";
+  content: "*";
+  opacity: 0;
 }
 
 .editor-tab-bar .tab.dirty .tab-label:before {
-  content: '*';
+  opacity: 1;
 }
 
 .editor-tab-bar .tab.active .tab-x:after {
