@@ -204,6 +204,8 @@ const resizeShell = function(){
 
 PubSub.subscribe( "window-resize", function( channel ){
   resizeShell();
+  shell.refresh();
+  editor.refresh();
 });
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
