@@ -554,6 +554,7 @@ const Editor = function(opts){
     label.className = "tab-label";
     if( !editor.path ) editor.alternateName = getAlternateName();
     label.textContent = editor.path ? path.basename( editor.path ) : editor.alternateName;
+    if( editor.path ) label.title = editor.path; 
     tab.appendChild( label );
     
     let X = document.createElement( "span" );
@@ -826,7 +827,9 @@ const Editor = function(opts){
       }
     }
 
-    tabs[index].querySelector( ".tab-label" ).textContent = path.basename( rslt );
+    let label = tabs[index].querySelector( ".tab-label" );
+    label.textContent = path.basename( rslt );
+    label.title = rslt;
     save(editor);
 
     let arr = [];
@@ -1008,7 +1011,7 @@ const Editor = function(opts){
     return new Promise( function( resolve, reject ){
       if( !arr.length ) return resolve();
       let path = arr.shift();
-      load( path, false, true ).then( function(){
+      load( path, true, true ).then( function(){
         return loadFiles(arr);
       }).then( function(){
         resolve();
@@ -1020,7 +1023,9 @@ const Editor = function(opts){
   // blank buffer (we never have no buffers).
   
   if( FileSettings.openFiles && FileSettings.openFiles.length ){
-    loadFiles( FileSettings.openFiles.slice(0)).then( function(){
+    let tmp = FileSettings.openFiles.slice(0);
+    FileSettings.openFiles = [];
+    loadFiles( tmp ).then( function(){
 
       // suppose there are recent files, but all of them
       // error out; then we need to open a blank.

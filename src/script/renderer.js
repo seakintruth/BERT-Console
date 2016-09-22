@@ -211,6 +211,8 @@ PubSub.subscribe( "splitter-resize", function( channel, splitter ){
     split: splitWindow.size.slice(0)
   }
   resizeShell();
+  shell.refresh();
+  editor.refresh();
 });
 
 window.addEventListener( "keydown", function(e){
@@ -278,6 +280,12 @@ var hint_function = function (text, pos, callback) {
 }
 
 const exec_function = function( lines, callback ){
+
+  if( !R.initialized ){
+    shell.response( "Not connected\n", "shell-error" );
+    callback();
+    return;
+  }
 
   if( !lines.length ) return;
   if( lines.length === 1 && !lines[0].length && last_parse_status === Shell.prototype.PARSE_STATUS.OK ){
@@ -600,6 +608,16 @@ document.addEventListener("DOMContentLoaded", function(event) {
   //if( !process.env.BERT_DEV_NO_PIPE ){
   if( pipename ){ 
     R.init({ pipename: pipename });
+  }
+  else {
+    Notifier.notify({
+      title: "WARNING",
+      className: "warning",
+      body: "Not connected to Excel/R",
+      timeout: 9,
+      footer: "OK"
+    });
+    global.__quit = true;
   }
 
   //console.info( "BH", process.env.BERT_HOME );
