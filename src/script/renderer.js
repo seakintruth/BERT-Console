@@ -39,10 +39,13 @@ const Shell = require( "cmjs-shell" );
 // initialize the global settings store.  this is file-based.  put it in 
 // the app home directory (i.e. root)?  
 
+let settingsKey = "bert-shell-settings.json";
+if( process.env.BERT_SHELL_HOME ) settingsKey = path.join( process.env.BERT_SHELL_HOME, settingsKey );
+
 // settings has some defaults -- in particular, the containing objects
 
 global.Settings = require( "./settings.js" ).createStore({ 
-  name: "general", type: "file", key: "bert-shell-settings.json", watch: true, defaults: {
+  name: "general", type: "file", key: settingsKey, watch: true, defaults: {
     layout: { vertical: false },
     shell: { functionTips: true },
     developer: {}
@@ -73,7 +76,9 @@ let focused = null;
 let statusMessage = null;
 let fmcount = 0;
 
-const USER_STYLESHEET_PATH = "user-stylesheet.css";
+//const USER_STYLESHEET_PATH = "user-stylesheet.css";
+let USER_STYLESHEET_PATH = "user-stylesheet.css";
+if( process.env.BERT_SHELL_HOME ) USER_STYLESHEET_PATH = path.join( process.env.BERT_SHELL_HOME, USER_STYLESHEET_PATH );
 
 let last_parse_status = Shell.prototype.PARSE_STATUS.OK;
 
@@ -121,7 +126,6 @@ const setStatusMessage = function( message ){
 }
 
 let updateFocusMessage = function(){
-
   let message;
   if(!(splitWindow.visible[0] && splitWindow.visible[1] )) message = "";
   else {
@@ -131,7 +135,6 @@ let updateFocusMessage = function(){
     }
   }
   setStatusMessage( message );  
-
 };
 
 PubSub.subscribe( "splitter-drag", function( channel, splitter ){

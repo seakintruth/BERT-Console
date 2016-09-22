@@ -56,6 +56,19 @@ const Search = require( "./search.js" );
 
 const htmlTemplate = require( "../data/editor.template.html" );
 
+// if file settings is empty, then we believe this is the first run. 
+
+if( typeof FileSettings.recentFiles === "undefined" 
+  && typeof FileSettings.openFiles  === "undefined" 
+  && process.env.BERT_HOME 
+  && process.env.BERT_SHELL_HOME ){
+
+    FileSettings.openFiles = [
+      path.join( process.env.BERT_SHELL_HOME, "welcome.md" ),
+      path.join( process.env.BERT_HOME, "functions.R" )
+    ];
+};
+
 // define this in a usable format, we'll unpack.
 // FIXME: external data file
 
@@ -630,7 +643,7 @@ const Editor = function(opts){
   };
 
   this.getRecentFiles = function(){
-    return FileSettings.recent_files || [];
+    return FileSettings.recentFiles || [];
   };
 
   let updateRecentFiles = function(file){
@@ -639,10 +652,10 @@ const Editor = function(opts){
     // same file.  we do this so it will move to the top of the list
     // when you open it again.
 
-    let recent = FileSettings.recent_files || [];
+    let recent = FileSettings.recentFiles || [];
     recent = recent.filter( function(test){ return test !== file });
     recent.push( file );
-    FileSettings.recent_files = recent;
+    FileSettings.recentFiles = recent;
 
     PubSub.publish( "menu-update" );
 
