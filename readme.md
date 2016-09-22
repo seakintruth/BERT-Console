@@ -18,7 +18,7 @@ bert-shell      build and config files
 
 in addition a `build/` directory will be created by webpack.
 
-[1]: https://bert-toolkit.com
+[1]: https://github.com/sdllc/Basic-Excel-R-Toolkit
 [2]: https://electron.atom.io
 [3]: https://codemirror.net
 
