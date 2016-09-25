@@ -612,10 +612,12 @@ const Editor = function(opts){
       Esc: function(cm){
         if( findActive ) closeSearch();
       },
+      /*
       Tab: function(cm) {
         var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
         cm.replaceSelection(spaces);
       },
+      */
       "Shift-F3": function(cm){
         if( findActive ){
           cm.find.next(true);
