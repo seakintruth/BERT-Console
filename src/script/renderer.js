@@ -455,6 +455,8 @@ let updateThemes = function(){
   shell.refresh();
   editor.updateTheme();
 
+  Utils.ensureCSS( path.join( process.env.BERT_SHELL_HOME,`theme/dark.css` ), { 'data-watch': true } ); 
+
   [Settings.shell.theme, Settings.editor.theme].forEach( function( theme ){
     if( theme && theme !== "default" ) {
       
