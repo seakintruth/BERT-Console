@@ -457,7 +457,9 @@ let updateThemes = function(){
 
   [Settings.shell.theme, Settings.editor.theme].forEach( function( theme ){
     if( theme && theme !== "default" ) {
-      Utils.ensureCSS( `theme/${theme}.css`, { 'data-watch': true } ); 
+      
+//      Utils.ensureCSS( `theme/${theme}.css`, { 'data-watch': true } ); 
+        Utils.ensureCSS( path.join( process.env.BERT_SHELL_HOME,`theme/${theme}.css` ), { 'data-watch': true } ); 
     }
   });
 
