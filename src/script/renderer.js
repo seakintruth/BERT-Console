@@ -110,8 +110,13 @@ PubSub.subscribe( "editor-new-tab", function(){
 
 });
 
-R.on( "control", function(){
-  // console.info( "CTL", arguments );
+R.on( "control", function( message ){
+  if( message === "block" ){
+    shell.block();
+  }
+  else {
+    shell.unblock();
+  }
 })
 
 R.on( "pipe-closed", function(){

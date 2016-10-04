@@ -264,6 +264,7 @@ const PipeR = function () {
                 console.info(e);
               }
               instance.emit( "pipe-closed" );
+              break;
             }
 
         default:
