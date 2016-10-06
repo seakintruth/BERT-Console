@@ -573,7 +573,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     tip_function: tip_function,
     exec_function: exec_function,
     //function_key_callback: function_key_callback,
-    //suppress_initial_prompt: true,
+    suppress_initial_prompt: true,
     viewport_change: function () {
       PubSub.publish("viewport-change");
     }

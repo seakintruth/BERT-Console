@@ -65,7 +65,8 @@ if( typeof FileSettings.recentFiles === "undefined"
 
     FileSettings.openFiles = [
       path.join( process.env.BERT_SHELL_HOME, "welcome.md" ),
-      path.join( process.env.BERT_HOME, "functions.R" )
+      path.join( process.env.BERT_HOME, "functions.R" ),
+      path.join( process.env.BERT_HOME, "excel-scripting.R" )
     ];
 };
 
