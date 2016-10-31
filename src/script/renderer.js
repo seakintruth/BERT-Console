@@ -303,10 +303,10 @@ const exec_function = function( lines, callback ){
 
   if( !lines.length ) return;
 
-//  if( lines.length === 1 && !lines[0].length && last_parse_status === Shell.prototype.PARSE_STATUS.OK ){
-//    callback();
-//    return;
-//  }
+  if( lines.length === 1 && !lines[0].length && last_parse_status === Shell.prototype.PARSE_STATUS.OK ){
+    callback();
+    return;
+  }
 
   R.exec( lines ).then( function( rslt ){
 
