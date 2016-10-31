@@ -613,6 +613,24 @@ const Editor = function(opts){
       Esc: function(cm){
         if( findActive ) closeSearch();
       },
+
+      Tab: function(cm){
+
+          if (cm.somethingSelected()) {
+            cm.indentSelection("add");
+            return;
+          }
+
+          //if (cm.config.indentWithTabs)
+          //  cm.replaceSelection("\t", "end", "+input");
+          //else
+            cm.execCommand("insertSoftTab");
+      },
+
+      "Shift-Tab": function(cm){
+          cm.indentSelection("subtract");
+      },
+
       /*
       Tab: function(cm) {
         var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
