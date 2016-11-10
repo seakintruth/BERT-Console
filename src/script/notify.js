@@ -58,9 +58,13 @@ module.exports.notify = function( opts ){
 
     let timer = null;
     let clicked = false;
+    let clickEvent = null;
     let expiring = false;
 
-    let click = function(){
+    let click = function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      clickEvent = e;
       if( timer ) clearTimeout( timer );
       clicked = true;
       if( !expiring ){
@@ -85,7 +89,7 @@ module.exports.notify = function( opts ){
       node.removeEventListener( "transitionend", cleanup );
       node.removeEventListener( "transitionend", expire ); // JIC
       node.parentNode.removeChild( node );
-      resolve( clicked ? "click" : "timeout" );
+      resolve( { reason: clicked ? "click" : "timeout", event: clickEvent });
     };
 
     node.addEventListener( "click", click );

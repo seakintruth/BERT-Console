@@ -66,6 +66,7 @@ const Utils = require( "./utils.js" );
 const Notifier = require( "./notify.js" );
 const Resize = require( "./resize-events.js" );
 const MenuTemplate = require( "../data/main-menu.js" );
+const UpdateCheck = require( "./update-check.js" );
 
 // globals
 let splitWindow;
@@ -663,7 +664,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
       let c = classes[ Math.floor( Math.random() * classes.length )];
       Notifier.notify({ 
         className: c,
-        title: c.toUpperCase(), body: "garble taco beverage vagine", footer: "OK", timeout: 7
+        title: c.toUpperCase(), body: "spoon net foxes ruddy", footer: "OK", timeout: 7
       }).then( function( reason ){
         console.info( "Reason:", reason );
         setTimeout( function(){ renotify() }, 1 );
@@ -673,5 +674,26 @@ document.addEventListener("DOMContentLoaded", function(event) {
   renotify();
   */
 
-});
+  let currentVersion = Number( process.env.BERT_VERSION );
+  UpdateCheck.checkForUpdates().then( function(){
+    if( Settings.update.lastVersion <= currentVersion || Settings.update.lastVersion === Settings.update.notifyVersion ) return;
+    Notifier.notify({ 
+      className: "information",
+      title: `Version ${Settings.update.lastVersion} is available`, body: "", 
+      footer: "<a class='notifier-link' data-command='download'>Download update</a> <a class='notifier-link' data-command='ignore'>Don't notify me again</a>", timeout: 10
+    }).then( function(reason){
+      if( reason.event && reason.event.target ){
+        let cmd = reason.event.target.getAttribute( "data-command" );
+        switch( cmd ){
+        case "download":
+          window.require('electron').shell.openExternal('https://bert-toolkit.com/download-bert');
+          break;
+        case "ignore":
+          Settings.update.notifyVersion = Settings.update.lastVersion;
+          break;
+        };
+      }
+    });
+  });
 
+});

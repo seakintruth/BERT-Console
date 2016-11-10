@@ -79,4 +79,12 @@
   text-rendering: optimizeLegibility;
 }
 
+.notifier-panel .notifier-link {
+  padding: 0 .35em;
+  display: inline-block;
+  color: #333;
+}
 
+.notifier-panel .notifier-link:hover {
+  text-decoration: underline;
+}
