@@ -686,7 +686,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         let cmd = reason.event.target.getAttribute( "data-command" );
         switch( cmd ){
         case "download":
-          window.require('electron').shell.openExternal('https://bert-toolkit.com/download-bert');
+          window.require('electron').shell.openExternal('https://bert-toolkit.com/download-bert?from-version=' + process.env.BERT_VERSION );
           break;
         case "ignore":
           Settings.update.notifyVersion = Settings.update.lastVersion;
