@@ -30,13 +30,25 @@ let Utils = {};
  * given a block of html, add it to the target node
  * (just set innerHTML), then return a map of all 
  * nodes that have ids.
+ * 
+ * Optionally use the messages parameter to update 
+ * attributes for title and placeholder (...)
  */
-Utils.parseHTML = function( content, target ){
+Utils.parseHTML = function( content, target, messages ){
 
   let search = function( node, map ){
     let children = node.children;
     for( let i = 0; i< children.length; i++ ){
       if( children[i].id ) map[children[i].id] = children[i];
+      if( messages ){
+        ["title", "placeholder"].forEach( function( attr ){
+          let matchattr = `data-${attr}-message`;
+          if( children[i].hasAttribute( matchattr )){
+            let msg = children[i].getAttribute( matchattr );
+            children[i].setAttribute( attr, messages[msg] );
+          }
+        });
+      }
       search( children[i], map );
     }
   };
@@ -202,15 +214,19 @@ Utils.scrubJSON = function( text ){
  * (2) if the template has an "id" field, then a click method
  *     will be added that sends a pubsub message.
  * 
+ * update: support different pubsub messages for different contexts
  */
-Utils.updateMenu = function( Settings, template ){
+Utils.updateMenu = function( Settings, template, clickMessage ){
+
+  // default for back-compat
+  clickMessage = clickMessage || "menu-click";
 
  if( Array.isArray( template )){
     for( let i = 0; i< template.length; i++ ){
       if( typeof template[i] === "string" ){
         if( template[i] === "separator" ) template[i] = { type: "separator" };
       }
-      else Utils.updateMenu( Settings, template[i] );
+      else Utils.updateMenu( Settings, template[i], clickMessage );
     }
   }
   else if( typeof template === "object" ){
@@ -225,7 +241,7 @@ Utils.updateMenu = function( Settings, template ){
       }
       else if( template.id ){
         template.click = function( item, focusedWindow ){
-          PubSub.publish( "menu-click", { id: template.id, template: template, item: item, focusedWindow: focusedWindow });
+          PubSub.publish( clickMessage, { id: template.id, template: template, item: item, focusedWindow: focusedWindow });
         }
       }
     }
@@ -253,6 +269,18 @@ Utils.updateSettings = function( Settings, template ){
       }
     }
   }
+};
+
+/**
+ * simple string replacement for templated parameter strings
+ */
+Utils.templateString = function( template ){
+  template = template || "";
+  let len = arguments.length - 1
+  for( let i = len; i > 0; i-- ){
+    template = template.replace( new RegExp( "\\$" + i, "g" ), arguments[i] );
+  }  
+  return template;
 };
 
 module.exports = Utils;

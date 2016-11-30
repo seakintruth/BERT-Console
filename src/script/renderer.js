@@ -65,7 +65,9 @@ const Editor = require( "./editor.js" );
 const Utils = require( "./utils.js" );
 const Notifier = require( "./notify.js" );
 const Resize = require( "./resize-events.js" );
-const MenuTemplate = require( "../data/main-menu.js" );
+const MenuTemplate = require( "../data/menus.js" ).Main;
+const ShellContextTemplate = require( "../data/menus.js" ).ShellContext;
+const Messages = require( "../data/messages.js" ).Main;
 const UpdateCheck = require( "./update-check.js" );
 
 // globals
@@ -135,17 +137,17 @@ let updateFocusMessage = function(){
   let message;
   if(!(splitWindow.visible[0] && splitWindow.visible[1] )) message = "";
   else {
-    message = ( focused === "editor" ? "Editor" : "Shell" ) + " has focus";
-    if( fmcount++ < 5 ){
-      message += " (use Ctrl+E to switch)";
-    }
+    let msg = Messages.CHANGE_FOCUS;
+    if( fmcount++ < 5 ) msg = Messages.CHANGE_FOCUS_LONG;
+    message = Utils.templateString( msg, focused === "editor" ? Messages.EDITOR : Messages.SHELL );
   }
   setStatusMessage( message );  
 };
 
 PubSub.subscribe( "splitter-drag", function( channel, splitter ){
-  setStatusMessage(
-    `Layout: ${splitter.size[0].toFixed(1)}% / ${splitter.size[1].toFixed(1)}%` );
+  setStatusMessage( Utils.templateString( Messages.SPLITTER_DRAG, 
+    splitter.size[0].toFixed(1), 
+    splitter.size[1].toFixed(1)));
 });
 
 PubSub.subscribe( "settings-change", function( channel, update ){
@@ -298,10 +300,6 @@ const exec_function = function( lines, callback ){
     return;
   }
 
-//  lines = lines.map( function( line ){
-//    return line.replace( /^\s*#.*$/, "" );
-//  });
-
   if( !lines.length ) return;
 
   if( lines.length === 1 && !lines[0].length && last_parse_status === Shell.prototype.PARSE_STATUS.OK ){
@@ -386,8 +384,15 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     }
     break;
 
+  case "shell-select-all":
+    shell.select_all();
+    break;
+  case "shell-clear-shell":
+    shell.clear();
+    break;
+
   default: 
-    console.warn( "Unhandled menu command:", opts[0] );
+    console.warn( "Unhandled menu command:", opts.id );
   };
 
 
@@ -499,35 +504,35 @@ let updateLayout = function( dir, reset ){
 
 PubSub.subscribe( "settings-error", function( channel, args ){
 
-  let msg = "Invalid settings file";
+  let msg = Messages.INVALID_SETTINGS_FILE;
   if( args.exception ) msg = msg + ": " + args.exception.message;
 
   Notifier.notify({
-    title: "WARNING",
+    title: Messages.WARNING,
     className: "warning",
     body: msg,
     timeout: 9,
-    footer: "OK"
+    footer: Messages.OK
   });
 });
 
 PubSub.subscribe( "file-read-error", function( channel, args ){
   Notifier.notify({
-    title: "ERROR",
+    title: Messages.ERROR,
     className: "error",
-    body: "reading file: " + args.err.message,
+    body: Utils.templateString( Messages.READING_FILE, args.err.message ),
     timeout: 9,
-    footer: "OK"
+    footer: Messages.OK
   });
 });
 
 PubSub.subscribe( "file-write-error", function( channel, args ){
   Notifier.notify({
-    title: "ERROR",
+    title: Messages.ERROR,
     className: "error",
-    body: "writing file " + args.err.message,
+    body: Utils.templateString( Messages.WRITING_FILE, args.err.message ),
     timeout: 9,
-    footer: "OK"
+    footer: Messages.OK
   });
 });
 
@@ -588,18 +593,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   shell.setOption( "lineWrapping", !!Settings.shell.wrap );
 
-  const shellContextMenu = Menu.buildFromTemplate([
-    { label: 'Select All', click: function(){
-      shell.select_all();
-    }},
-    { role: 'copy' },
-    { role: 'paste' },
-    { type: 'separator' },
-    { label: 'Clear Shell', click: function(){
-      shell.clear();
-    }}
-  ]);
+  Utils.updateMenu( Settings, ShellContextTemplate );
+  console.info( ShellContextTemplate );
 
+  const shellContextMenu = Menu.buildFromTemplate( ShellContextTemplate );
+  
   shellContainer.addEventListener('contextmenu', function(e){
     e.preventDefault();
     shellContextMenu.popup(remote.getCurrentWindow());
@@ -625,23 +623,19 @@ document.addEventListener("DOMContentLoaded", function(event) {
     }
   }
 
-  // console.info( "pipename", pipename );
-  //if( !process.env.BERT_DEV_NO_PIPE ){
   if( pipename ){ 
     R.init({ pipename: pipename });
   }
   else {
     Notifier.notify({
-      title: "WARNING",
+      title: Messages.WARNING,
       className: "warning",
-      body: "Not connected to Excel/R",
+      body: Messages.NOT_CONNECTED,
       timeout: 9,
-      footer: "OK"
+      footer: Messages.OK
     });
     global.__quit = true;
   }
-
-  //console.info( "BH", process.env.BERT_HOME );
 
   updateThemes();
   Utils.updateMenu( Settings, MenuTemplate );
@@ -657,30 +651,15 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   if( R.initialized ) resizeShell();
 
-  /*
-  let classes = [ "warning", "error", "information", "question", "" ];
-  let renotify = function(){
-    setTimeout( function(){
-      let c = classes[ Math.floor( Math.random() * classes.length )];
-      Notifier.notify({ 
-        className: c,
-        title: c.toUpperCase(), body: "spoon net foxes ruddy", footer: "OK", timeout: 7
-      }).then( function( reason ){
-        console.info( "Reason:", reason );
-        setTimeout( function(){ renotify() }, 1 );
-      })
-    }, 500 );
-  };
-  renotify();
-  */
-
   let currentVersion = Number( process.env.BERT_VERSION );
   UpdateCheck.checkForUpdates().then( function(){
     if( Settings.update.lastVersion <= currentVersion || Settings.update.lastVersion === Settings.update.notifyVersion ) return;
     Notifier.notify({ 
       className: "information",
-      title: `Version ${Settings.update.lastVersion} is available`, body: "", 
-      footer: "<a class='notifier-link' data-command='download'>Download update</a> <a class='notifier-link' data-command='ignore'>Don't notify me again</a>", timeout: 10
+      title: Utils.templateString( Messages.UPDATE_AVAILABLE, Settings.update.lastVersion), 
+      body: "", 
+      footer: `<a class='notifier-link' data-command='download'>${Messages.DOWNLOAD}</a> <a class='notifier-link' data-command='ignore'>${Messages.IGNORE}</a>`, 
+      timeout: 10
     }).then( function(reason){
       if( reason.event && reason.event.target ){
         let cmd = reason.event.target.getAttribute( "data-command" );

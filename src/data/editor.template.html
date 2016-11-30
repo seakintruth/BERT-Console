@@ -10,28 +10,28 @@
 
       <div id='find-row' class='row'>
         <div>
-          <input type='text' name='find-text' id='find-text' placeholder='Find'/>
-          <div class='checkbox' title="Case Sensitive">
+          <input type='text' name='find-text' id='find-text' placeholder='Find' data-placeholder-message='FIND'/>
+          <div class='checkbox' title="Case Sensitive" data-title-message='CASE_SENSITIVE'>
             <input type='checkbox' id='find-case-sensitive'/><label for='find-case-sensitive'></label>
           </div>
-          <div class='checkbox' title="Whole Word">
+          <div class='checkbox' title="Whole Word" data-title-message='WHOLE_WORD'>
             <input type='checkbox' id='find-whole-word'/><label for='find-whole-word'></label>
           </div>
-          <div class='checkbox' title="Regex">
+          <div class='checkbox' title="Regex" data-title-message='REGEX'>
             <input type='checkbox' id='find-regex'/><label for='find-regex'></label>
           </div>
-          <button id='find-previous' title='Find Previous'></button>
-          <button id='find-next' title='Find Next'></button>
+          <button id='find-previous' title='Find Previous' data-title-message='FIND_PREVIOUS'></button>
+          <button id='find-next' title='Find Next' data-title-message='FIND_NEXT'></button>
           <div class='flex-spacer'></div>
-          <button id='close-search-panel' title='Close Search Panel' tabindex='-1'></button>
+          <button id='close-search-panel' title='Close Search Panel' tabindex='-1' data-title-message='CLOSE_SEARCH_PANEL'></button>
         </div>
       </div>
 
       <div id='replace-row' class='row'>
         <div>
-          <input type='text' name='replace-text' id='replace-text' placeholder='Replace'/>
-          <button id='replace-one' title='Replace One'></button>
-          <button id='replace-all' title='Replace All'></button>
+          <input type='text' name='replace-text' id='replace-text' placeholder='Replace' data-placeholder-message='REPLACE'/>
+          <button id='replace-one' title='Replace One' data-title-message='REPLACE_ONE'></button>
+          <button id='replace-all' title='Replace All' data-title-message='REPLACE_ALL'></button>
         </div>
       </div>
 

@@ -52,9 +52,12 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
 const Menu = remote.Menu;
+const Messages = require( "../data/messages.js" ).Editor;
 const Search = require( "./search.js" );
 
 const htmlTemplate = require( "../data/editor.template.html" );
+const EditorTabContextTemplate = require( "../data/menus.js" ).EditorTab;
+const EditorContextTemplate = require( "../data/menus.js" ).EditorContext;
 
 // if file settings is empty, then we believe this is the first run. 
 
@@ -112,13 +115,6 @@ const Editor = function(opts){
       }
       else {
         switch( update.key ){
-          /*
-        case "editor.line_numbers":
-          editors.forEach( function( editor ){
-            editor.cm.setOption( "lineNumbers", Settings.editor.line_numbers );
-          });
-          break;
-          */
         case "editor.statusBar":
           document.getElementById( "statusBar" ).style.display = 
             Settings.editor.statusBar ? "" : "none";
@@ -186,7 +182,7 @@ const Editor = function(opts){
   // load external html; insert it into the target
   // and get a reference to named entities.
   
-  let nodes = Utils.parseHTML( htmlTemplate, opts.node );
+  let nodes = Utils.parseHTML( htmlTemplate, opts.node, Messages );
 
   if( !Settings.editor.statusBar ) nodes.statusBar.style.display = "none";
 
@@ -213,7 +209,7 @@ const Editor = function(opts){
    */
   let updatePosition = function(){
     let pos = active.cm.getDoc().getCursor();
-    nodes.statusPosition.textContent = `Line ${pos.line+1}, Col ${pos.ch+1}`;
+    nodes.statusPosition.textContent = Utils.templateString( Messages.LINE_COL, pos.line+1, pos.ch+1 );
   };
 
   /**
@@ -221,7 +217,7 @@ const Editor = function(opts){
    */
   let updateStatus = function(){
     if( !active ) return;
-    nodes.statusLanguage.textContent = `Language: ${active.language || "?"}`;
+    nodes.statusLanguage.textContent = Utils.templateString( Messages.LANGUAGE, active.language || "?" );
     updatePosition();
   };
 
@@ -261,15 +257,15 @@ const Editor = function(opts){
 
   let querySave = function( editor ){
 
+    // FIXME: use shell dialog
+
     if( editor.dirty ){
       let rslt = dialog.showMessageBox({
         type: "question",
-        buttons: ["Save", "Don't Save", "Cancel"],
+        buttons: [ Messages.SAVE, Messages.DONT_SAVE, Messages.CANCEL ],
         defaultId: 0,
         noLink: true,
-        message: "Save changes to " +
-            (editor.path ? path.basename( editor.path ) : editor.alternateName) + "?"
-
+        message: Utils.templateString( Messages.QUERY_SAVE, (editor.path ? path.basename( editor.path ) : editor.alternateName))
       });
       switch( rslt ){
       case 2: // cancel
@@ -354,55 +350,46 @@ const Editor = function(opts){
 
   ////////////
 
-  const editorContextMenuTemplate = [
-    { 
-      label: 'Select All', click: function(){
-        active.cm.execCommand('selectAll');
-    }},
-    { role: 'cut' },
-    { role: 'copy' },
-    { role: 'paste' },
-    { type: 'separator' },
-    {
-      id: 'execute',
-      label: "Execute selected code",
-      enabled: false,
-      click: function(){
-        let code = active.cm.getDoc().getSelection();
-        PubSub.publish( "execute-block", code );
-      }
-    }
-  ];
+  Utils.updateMenu({}, EditorContextTemplate, "editor-menu-click" );
 
   nodes.contentPanel.addEventListener('contextmenu', function(e){
     e.preventDefault();
     let mode = active.cm.getOption("mode");
-    let node = Utils.findNode( "execute", editorContextMenuTemplate );
+    let node = Utils.findNode( "editor-execute", EditorContextTemplate );
     if( node ) node.enabled = (mode === 'r' && active.cm.getDoc().somethingSelected());
-    Menu.buildFromTemplate( editorContextMenuTemplate ).popup(remote.getCurrentWindow());
+    Menu.buildFromTemplate( EditorContextTemplate ).popup(remote.getCurrentWindow());
   }, false);
 
   ////////////
 
-  const tabContextMenu = Menu.buildFromTemplate([
-    { label: 'Close', 
-      click: function(){
-        closeEditor( tabContextMenu.targetIndex );
-      }
-    },
-    { label: 'Close Others',
-      click: function(){ 
-        for( let i = 0; i< tabContextMenu.targetIndex; i++ ) closeEditor( 0 );
-        while( editors.length > 1 ) closeEditor( 1 );
-      }
-    },
-    { label: 'Close All', 
-      click: function(){
-        let count = editors.length;
-        for( let i = 0; i< count; i++ ) closeEditor( 0 );
-      }
-    },
-  ]);
+  Utils.updateMenu({}, EditorTabContextTemplate, "editor-menu-click" );
+  const tabContextMenu = Menu.buildFromTemplate( EditorTabContextTemplate );
+
+  PubSub.subscribe( "editor-menu-click", function( channel, opts ){
+    switch( opts.id ){
+    case 'editor-select-all':
+      active.cm.execCommand('selectAll');
+      break;
+    case 'editor-execute':
+      let code = active.cm.getDoc().getSelection();
+      PubSub.publish( "execute-block", code );
+      break;
+    case 'editor-tab-close':
+      closeEditor( tabContextMenu.targetIndex );
+      break;
+    case 'editor-tab-close-others':
+      for( let i = 0; i< tabContextMenu.targetIndex; i++ ) closeEditor( 0 );
+      while( editors.length > 1 ) closeEditor( 1 );
+      break;
+    case 'editor-tab-close-all':
+      let count = editors.length;
+      for( let i = 0; i< count; i++ ) closeEditor( 0 );
+      break;
+    default:
+      console.info( "unhandled editor menu click:", opts.id );
+      break;
+    }
+  });
 
   nodes.tabBar.addEventListener( "contextmenu", function( e ){
     e.preventDefault();
@@ -538,8 +525,7 @@ const Editor = function(opts){
    */
   let getAlternateName = function(){
 
-    // FIXME: parameterize
-    let baseName = "Untitled";
+    let baseName = Messages.UNTITLED;
 
     let max = 0;
     editors.forEach( function( editor ){
@@ -642,11 +628,20 @@ const Editor = function(opts){
           cm.find.next(true);
         }
       },
+
+      // F6: execute selected code
+      F6: function(cm){
+        let code = active.cm.getDoc().getSelection();
+        if( code.trim().length ) PubSub.publish( "execute-block", code );
+      },
+
+      // F3: find next
       F3: function(cm){
         if( findActive ){
           cm.find.next();
         }
       }
+
     });
 
     Search.apply( editor.cm );
@@ -839,8 +834,8 @@ const Editor = function(opts){
     let rslt = dialog.showSaveDialog({
       defaultPath: Settings.openPath,
       filters: [
-        {name: 'R files', extensions: ['r', 'rsrc', 'rscript']},
-        {name: 'All Files', extensions: ['*']}
+        {name: Messages.R_FILES_PATTERN, extensions: ['r', 'rsrc', 'rscript']},
+        {name: Messages.ALL_FILES_PATTERN, extensions: ['*']}
       ],
       properties: ['openFile', 'NO_multiSelections']});
     
@@ -1017,8 +1012,8 @@ const Editor = function(opts){
       let rslt = dialog.showOpenDialog({
         defaultPath: Settings.openPath,
         filters: [
-          {name: 'R files', extensions: ['r', 'rsrc', 'rscript']},
-          {name: 'All Files', extensions: ['*']}
+          {name: Messages.R_FILES_PATTERN, extensions: ['r', 'rsrc', 'rscript']},
+          {name: Messages.ALL_FILES_PATTERN, extensions: ['*']}
         ],
         properties: ['openFile', 'NO_multiSelections']});
       
