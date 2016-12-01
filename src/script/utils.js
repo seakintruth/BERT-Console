@@ -23,6 +23,8 @@
 "use strict";
 
 const PubSub = require( "pubsub-js" );
+const fs = require( "fs" );
+const path = require( "path" );
 
 let Utils = {};
 
@@ -269,6 +271,34 @@ Utils.updateSettings = function( Settings, template ){
       }
     }
   }
+};
+
+/**
+ * load the file from the current locale, dev locale, or default.  
+ * this runs synchronously so we can do it asap -- could still structure 
+ * async, but some other code needs to be refactored.
+ * 
+ * if the file is malformed, fallback to default and log
+ */
+Utils.getLocaleResource = function( file, defaultDir ){
+
+  let p, req = eval("require");
+  try {
+    if( process.env.BERT_INSTALL ){
+      p = path.join( process.env.BERT_INSTALL, "locale", "dev", file );
+      if( fs.existsSync(p)) return req(p);
+      if( process.env.BERT_LOCALE ){
+        p = path.join( process.env.BERT_INSTALL, "locale", process.env.BERT_LOCALE, file );
+        if( fs.existsSync(p)) return req(p);
+      }
+    }
+  }
+  catch( e ){
+    console.info( `Error loading locale file (${p}), reverting to default`, e );
+  }
+  p = path.join( defaultDir, file );
+  return req(p);
+
 };
 
 /**

@@ -52,12 +52,14 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const PubSub = require( 'pubsub-js' );
 const Menu = remote.Menu;
-const Messages = require( "../data/messages.js" ).Editor;
 const Search = require( "./search.js" );
 
 const htmlTemplate = require( "../data/editor.template.html" );
-const EditorTabContextTemplate = require( "../data/menus.js" ).EditorTab;
-const EditorContextTemplate = require( "../data/menus.js" ).EditorContext;
+
+const Messages = Utils.getLocaleResource( "messages.js", "../data" ).Editor;
+const MenuTemplates = Utils.getLocaleResource( "menus.js", "../data" );
+const EditorTabContextTemplate = MenuTemplates.EditorTab;
+const EditorContextTemplate = MenuTemplates.EditorContext;
 
 // if file settings is empty, then we believe this is the first run. 
 

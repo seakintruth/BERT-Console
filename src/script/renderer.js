@@ -67,23 +67,8 @@ const Notifier = require( "./notify.js" );
 const Resize = require( "./resize-events.js" );
 const UpdateCheck = require( "./update-check.js" );
 
-let MenuTemplates = require( "../data/menus.js" );
-let Messages = require( "../data/messages.js" ).Main;
-
-// potential overrides 
-if( process.env.BERT_INSTALL ){
-  let req = eval("require");
-  let base = path.join( process.env.BERT_INSTALL, "locale", "dev", "messages.js" );
-  if( fs.existsSync( base )){
-    try { Messages = req( base ).Main; }
-    catch(e){ console.error("Error loading locale messages", e); }
-  }
-  base = path.join( process.env.BERT_INSTALL, "locale", "dev", "menus.js" );
-  if( fs.existsSync( base )){
-    try { MenuTemplates = req( base ); }
-    catch(e){ console.error("Error loading locale menus", e); }
-  }
-}
+const Messages = Utils.getLocaleResource( "messages.js", "../data" ).Main;
+const MenuTemplates = Utils.getLocaleResource( "menus.js", "../data" );
 
 // globals
 let splitWindow;
