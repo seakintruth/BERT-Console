@@ -16,4 +16,4 @@ npm install --production
 
 # now package
 cd ..
-node_modules/.bin/electron-packager build --platform=win32 --icon=icon.ico
+node_modules/.bin/electron-packager build --platform=win32 --arch=all --icon=icon.ico
