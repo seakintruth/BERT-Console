@@ -75,18 +75,7 @@ if( typeof FileSettings.recentFiles === "undefined"
     ];
 };
 
-// define this in a usable format, we'll unpack.
-// FIXME: external data file
-
-let supportedLanguages = {
-
-  R: { extensions: [ 'r', 'rscript', 'rsrc' ], path: 'r' },
-  Javascript: { extensions: [ 'js', 'jscript', 'json' ], path: 'javascript' },
-  HTML: { extensions: [ 'htm', 'html' ], path: 'htmlmixed', depends: [ 'xml', 'javascript', 'css' ] },
-  CSS: { extensions: [ 'css' ], path: 'css' },
-  Markdown: { extensions: [ 'md', 'markdown' ], path: 'markdown' }
-
-};
+let supportedLanguages = require( "../data/supported-languages.js" );
 
 let languages = {};
 Object.keys( supportedLanguages ).forEach( function( language ){
