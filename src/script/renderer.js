@@ -65,10 +65,25 @@ const Editor = require( "./editor.js" );
 const Utils = require( "./utils.js" );
 const Notifier = require( "./notify.js" );
 const Resize = require( "./resize-events.js" );
-const MenuTemplate = require( "../data/menus.js" ).Main;
-const ShellContextTemplate = require( "../data/menus.js" ).ShellContext;
-const Messages = require( "../data/messages.js" ).Main;
 const UpdateCheck = require( "./update-check.js" );
+
+let MenuTemplates = require( "../data/menus.js" );
+let Messages = require( "../data/messages.js" ).Main;
+
+// potential overrides 
+if( process.env.BERT_INSTALL ){
+  let req = eval("require");
+  let base = path.join( process.env.BERT_INSTALL, "locale", "dev", "messages.js" );
+  if( fs.existsSync( base )){
+    try { Messages = req( base ).Main; }
+    catch(e){ console.error("Error loading locale messages", e); }
+  }
+  base = path.join( process.env.BERT_INSTALL, "locale", "dev", "menus.js" );
+  if( fs.existsSync( base )){
+    try { MenuTemplates = req( base ); }
+    catch(e){ console.error("Error loading locale menus", e); }
+  }
+}
 
 // globals
 let splitWindow;
@@ -414,7 +429,7 @@ let updateUserStylesheet = function(){
 
 let updateMenu = function(){  
 
-  let node, template = MenuTemplate;
+  let node, template = MenuTemplates.Main;
 
   Utils.updateSettings( Settings, template );  
 
@@ -593,10 +608,9 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   shell.setOption( "lineWrapping", !!Settings.shell.wrap );
 
-  Utils.updateMenu( Settings, ShellContextTemplate );
-  console.info( ShellContextTemplate );
+  Utils.updateMenu( Settings, MenuTemplates.ShellContext );
 
-  const shellContextMenu = Menu.buildFromTemplate( ShellContextTemplate );
+  const shellContextMenu = Menu.buildFromTemplate( MenuTemplates.ShellContext );
   
   shellContainer.addEventListener('contextmenu', function(e){
     e.preventDefault();
@@ -638,7 +652,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }
 
   updateThemes();
-  Utils.updateMenu( Settings, MenuTemplate );
+  Utils.updateMenu( Settings, MenuTemplates.Main );
   updateMenu();
 
   shell.focus();

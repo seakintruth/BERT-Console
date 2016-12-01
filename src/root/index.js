@@ -25,6 +25,11 @@
 const {app, BrowserWindow} = require('electron')
 const windowStateKeeper = require('electron-window-state');
 
+let devtools = false;
+process.argv.forEach( function( arg ){
+  if( arg === "--devtools" ) devtools = true;
+})
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
@@ -45,8 +50,7 @@ function createWindow () {
 
   mainWindowState.manage(win);
 
-    // Open the DevTools.
-//  win.webContents.openDevTools()
+  if( devtools ) win.webContents.openDevTools()
 
   // and load the index.html of the app.
   win.loadURL(`file://${__dirname}/index.html`)

@@ -366,24 +366,23 @@ const Editor = function(opts){
   const tabContextMenu = Menu.buildFromTemplate( EditorTabContextTemplate );
 
   PubSub.subscribe( "editor-menu-click", function( channel, opts ){
+    let i;
     switch( opts.id ){
     case 'editor-select-all':
       active.cm.execCommand('selectAll');
       break;
     case 'editor-execute':
-      let code = active.cm.getDoc().getSelection();
-      PubSub.publish( "execute-block", code );
+      PubSub.publish( "execute-block", active.cm.getDoc().getSelection());
       break;
     case 'editor-tab-close':
       closeEditor( tabContextMenu.targetIndex );
       break;
     case 'editor-tab-close-others':
-      for( let i = 0; i< tabContextMenu.targetIndex; i++ ) closeEditor( 0 );
+      for( i = 0; i< tabContextMenu.targetIndex; i++ ) closeEditor( 0 );
       while( editors.length > 1 ) closeEditor( 1 );
       break;
     case 'editor-tab-close-all':
-      let count = editors.length;
-      for( let i = 0; i< count; i++ ) closeEditor( 0 );
+      for( i = 0; i< editors.length; i++ ) closeEditor( 0 );
       break;
     default:
       console.info( "unhandled editor menu click:", opts.id );
