@@ -56,8 +56,8 @@ const Search = require( "./search.js" );
 
 const htmlTemplate = require( "../data/editor.template.html" );
 
-const Messages = Utils.getLocaleResource( "messages.js", "../data" ).Editor;
-const MenuTemplates = Utils.getLocaleResource( "menus.js", "../data" );
+const Messages = Utils.getLocaleResource( "messages.js", require( "../data/messages.js")).Editor;
+const MenuTemplates = Utils.getLocaleResource( "menus.js", require( "../data/menus.js" ));
 const EditorTabContextTemplate = MenuTemplates.EditorTab;
 const EditorContextTemplate = MenuTemplates.EditorContext;
 

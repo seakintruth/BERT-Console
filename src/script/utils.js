@@ -280,8 +280,7 @@ Utils.updateSettings = function( Settings, template ){
  * 
  * if the file is malformed, fallback to default and log
  */
-Utils.getLocaleResource = function( file, defaultDir ){
-
+Utils.getLocaleResource = function( file, defaultResource ){
   let p, req = eval("require");
   try {
     if( process.env.BERT_INSTALL ){
@@ -296,8 +295,7 @@ Utils.getLocaleResource = function( file, defaultDir ){
   catch( e ){
     console.info( `Error loading locale file (${p}), reverting to default`, e );
   }
-  p = path.join( defaultDir, file );
-  return req(p);
+  return defaultResource;
 
 };
 
@@ -311,6 +309,37 @@ Utils.templateString = function( template ){
     template = template.replace( new RegExp( "\\$" + i, "g" ), arguments[i] );
   }  
   return template;
+};
+
+/**
+ * when R gives us a data frame, it's organized by column.  
+ * restructure as rows, optionally named.
+ */
+Utils.restructureDataFrame = function( obj, named ){
+
+  let cols = obj.$names.length;
+  let rows = obj.$data[obj.$names[0]].length;
+  let arr = new Array(rows);
+
+  if( named ){
+    for( let i = 0; i< rows; i++ ){
+      arr[i] = {};
+      for( let j = 0; j< cols; j++ ){
+        let name = obj.$names[j];
+        arr[i][name] = obj.$data[name][i];
+      }
+    }
+  }
+  else {
+    for( let i = 0; i< rows; i++ ){
+      arr[i] = [];
+      for( let j = 0; j< cols; j++ ){
+        let name = obj.$names[j];
+        arr[i][j] = obj.$data[name][i];
+      }
+    }
+  }
+  return arr;
 };
 
 module.exports = Utils;

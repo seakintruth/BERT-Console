@@ -78,3 +78,90 @@ body {
 .cmjs-shell-function-tip-container.visible {
 	opacity: 1;
 }
+
+/* --- fix: who's unsetting this? (probably me...) ---------------------- */
+
+.checkbox input[type="checkbox"]:checked + label::after, .checkbox input[type="radio"]:checked + label::after {
+  font-size: 1em;
+  left: -1px;
+  top: 1px;
+}
+
+/* --- chooser ---------------------------------------------------------- */
+
+.chooser-radio, .chooser-checkbox {
+  padding-left: 0em;
+  cursor: default;
+  display: flex;
+}
+
+.chooser-radio::before {
+  padding: .22em .5em;
+  overflow: hidden;
+  max-width: 2em;
+  width: 2em;
+  font-family: 'Material Icons';
+  content: "radio_button_unchecked";
+  color: #333;
+  font-size: 1.2em;
+  position: relative;
+}
+
+.chooser-radio.chooser-radio-checked::before {
+  content: "radio_button_checked";
+}
+
+.chooser-checkbox::before {
+  overflow: hidden;
+  font-family: 'Material Icons';
+  content: "check";
+  color: rgba( 0,0,0,0);
+  margin-right: .6em;
+  font-size: 1.2em;
+}
+
+.chooser-checkbox.chooser-checkbox-checked::before {
+  color: #333;
+}
+
+/* --- mirror chooser---------------------------------------------------- */
+
+.mirror-chooser-name {
+  font-size: 1.2em;
+}
+
+.mirror-chooser-host {
+  color: #666;
+}
+
+.mirror-chooser-entry {
+  padding: .5em 1em;
+  display: block;
+}
+
+.vlist-list-entry:nth-child(even) .mirror-chooser-entry {
+  background: #eee;
+}
+
+/* --- package chooser--------------------------------------------------- */
+
+.package-chooser-name {
+}
+
+.package-chooser-entry {
+  padding: .75em 1em;
+}
+
+.vlist-list-entry:nth-child(even) .package-chooser-entry {
+  background: #eee;
+}
+
+.package-chooser-entry .chooser-checkbox.disabled {
+  color: #999;
+}
+
+.package-chooser-entry .chooser-checkbox.disabled::before {
+  color: inherit;
+}
+
+

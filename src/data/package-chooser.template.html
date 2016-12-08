@@ -1,0 +1,58 @@
+
+<!-- markup for CRAN package chooser -->
+
+<style>
+  #package-chooser .dialog-header > div {
+    display: flex;
+  }
+  #package-chooser .dialog-header-form {
+    padding-left: 1em;
+  }
+  #package-chooser .dialog-header-form input {
+    height: 2em;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    padding-left: .5em;
+  }
+  #package-chooser .dialog-body {
+    min-height: 10em;
+  }
+  #package-chooser-wait {
+    margin: .5em 1em;
+  }
+
+  #package-chooser {
+    height: 90%;
+    width: 50%;
+  }
+
+</style>
+
+<div id='package-chooser' class='dialog-dialog'>
+  
+  <div class='dialog-header'>
+    <div>
+      <div class='dialog-header-title'>
+        Available Packages
+      </div>
+      <div class='dialog-header-form'>
+        <input type='text' id='package-chooser-filter' placeholder='Filter...'>
+      </div>
+    </div>
+  </div>
+
+  <div class='dialog-body'>
+    <div id='package-chooser-wait'>
+      Loading package list, please wait...
+    </div>
+    <div id='package-chooser-list'>
+    </div>
+  </div>
+  
+  <div class='dialog-footer dialog-footer-align-right'>
+    <button class='dialog-button dialog-button-ok'>OK</button>
+    <button class='dialog-button dialog-button-cancel'>Cancel</button>
+  </div>
+
+</div>
+
