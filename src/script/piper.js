@@ -253,6 +253,10 @@ const PipeR = function () {
 
           break;
 
+        case "push":
+          instance.emit( "push", packet );
+          break;
+
         case "control":
 
             if( packet.data === "quit" ){

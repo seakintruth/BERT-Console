@@ -136,6 +136,19 @@ R.on( "pipe-closed", function(){
   remote.getCurrentWindow().close();
 });
 
+R.on( "push", function( args ){
+  args = args || {};
+  if( args.channel === "progress" ) handleProgress( args );
+});
+
+const handleProgress = function( args ){
+
+  let node = document.createElement( "div" );
+  node.innerText = "ZOMM ZOM";
+  shell.insert_node( node );
+
+};
+
 const setStatusMessage = function( message ){
   if( !statusMessage ) statusMessage = document.getElementById( "status-message" );
   if( !statusMessage ) return;
@@ -676,10 +689,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
       }
     });
   });
-
-  setTimeout( function(){
-    showPackageChooser();
-  }, 100 );
 
 });
 
