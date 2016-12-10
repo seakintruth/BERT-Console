@@ -54,6 +54,33 @@
   text-align: right;
 }
 
+.dialog-split-footer {
+  display: flex;
+  flex-direction: row;
+}
+
+.dialog-footer-status {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.dialog-dialog .flex-patch {
+  height: 100%;
+  width: 100%;
+}
+
+#dialog-footer-status-message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  transform: translateY(-50%);
+  top: 50%;
+}
+
+.dialog-footer-buttons {
+  text-align: right;
+}
+
 .dialog-footer {
   padding: .7em 1em;
   border-top: 1px solid #ccc;

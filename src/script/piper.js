@@ -357,7 +357,12 @@ const PipeR = function () {
 	 */
   this.queue_or_exec = function (commands, exec_channel, key) {
 
-    if (!busy) {
+    if( commands.length && commands[0] === "sync-response" ){
+      write_packet(client, { command: "internal", commands: commands });
+      return;
+    }
+
+    if( !busy ){
       return exec_packet({ command: exec_channel, commands: commands });
     }
 

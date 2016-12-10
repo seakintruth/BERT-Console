@@ -26,7 +26,7 @@
 require( "../style/main.css" );
 
 // electron components
-const {remote} = window.require('electron');
+const {remote, ipcRenderer} = window.require('electron');
 const {Menu, MenuItem, dialog} = remote;
 
 // node modules
@@ -69,6 +69,7 @@ const UpdateCheck = require( "./update-check.js" );
 const HTMLDialog = require( "./dialog.js" );
 const VList = require( "./vlist.js" );
 const Cache = require( "./cache.js" );
+const ProgressBarManager = require( "./progressbar.js" );
 
 const Messages = Utils.getLocaleResource( "messages.js", require("../data/messages.js")).Main;
 const MenuTemplates = Utils.getLocaleResource( "menus.js", require( "../data/menus.js" ));
@@ -136,18 +137,82 @@ R.on( "pipe-closed", function(){
   remote.getCurrentWindow().close();
 });
 
+////////////////////////////
+
+
+/**
+ * download a file, using electron utilities and 
+ * (optionally) adding a progress bar.
+ */
+const download_file = function(opts){
+	
+	return new Promise( function( resolve, reject ){
+		
+		let progressbar = null;
+
+		if( !opts.quiet ){
+      shell.response( `\n${Messages.TRYING_URL}: ${opts.url}\n` );
+      progressbar = {
+				label: function(p){
+					return ( p >= 100 ) ? Messages.DOWNLOAD_COMPLETE : `${Messages.DOWNLOADING}: ${p}%`;
+				}, 
+				min: 0, max: 1, value: 0, width: 30, key: "js.download"
+      };
+      ProgressBarManager.update(progressbar);
+		}
+
+		ipcRenderer.on( 'download-progress', function( event, args ){
+
+			if( progressbar ){
+				if( progressbar.max === 1 ) progressbar.max = args.total;
+				progressbar.value = args.received;
+        ProgressBarManager.update(progressbar);
+			}
+
+		});
+
+		ipcRenderer.on( 'download-complete', function( event, args ){
+
+      if( progressbar ){
+        progressbar.closed = true;
+        ProgressBarManager.update(progressbar);
+      }
+
+			if( args.state !== "completed" ){
+				shell.response( `\n${Messages.DOWNLOAD_FAILED}: ${args.state}\n` );
+			}
+
+			ipcRenderer.removeAllListeners( "download-complete" );
+			ipcRenderer.removeAllListeners( "download-progress" );
+			
+			resolve( args.state === "completed" ? 0 : -1 );
+
+		});
+		
+  	ipcRenderer.send( "download", opts );
+		
+	});
+		
+};
+
+////////////////////////////
+
 R.on( "push", function( args ){
   args = args || {};
-  if( args.channel === "progress" ) handleProgress( args );
+  if( args.channel === "progress" ){
+    let obj = JSON.parse(args.data);
+    ProgressBarManager.update(obj.$data);
+  }
+  else if( args.channel === "download" ){
+    let obj = JSON.parse(args.data);
+    download_file(obj.$data).then( function( result ){
+      R.internal([ "sync-response", result ]);
+    }).catch( function( err ){
+      console.error( "download error", err );
+      R.internal([ "sync-response", -1 ]);
+    })
+  }
 });
-
-const handleProgress = function( args ){
-
-  let node = document.createElement( "div" );
-  node.innerText = "ZOMM ZOM";
-  shell.insert_node( node );
-
-};
 
 const setStatusMessage = function( message ){
   if( !statusMessage ) statusMessage = document.getElementById( "status-message" );
@@ -425,7 +490,6 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     console.warn( "Unhandled menu command:", opts.id );
   };
 
-
 });
 
 let updateUserStylesheet = function(){
@@ -690,6 +754,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
     });
   });
 
+  ProgressBarManager.init(shell);
+
+  // setTimeout( function(){ showPackageChooser() }, 1 );
+
 });
 
 const showMirrorChooser = function(){
@@ -838,10 +906,12 @@ const showPackageChooserInternal = function(cran){
   let cacheKey = "package-list-" + cran;
   let data = Cache.get( cacheKey );
   let filtered;
+  let selected_count = 0;
 
   // start with "please wait"
   chooser.nodes['package-chooser-wait'].style.display = "block";
   chooser.nodes['package-chooser-list'].style.display = "none";
+  chooser.nodes['dialog-footer-status-message'].textContent = "";
 
   // data filter function 
   let filterData = function(){
@@ -884,6 +954,17 @@ const showPackageChooserInternal = function(cran){
     data.selected = !data.selected;
     vlist.repaint();
 
+    if( data.selected ) selected_count++;
+    else selected_count--;
+
+    if( selected_count === 0 )
+      chooser.nodes['dialog-footer-status-message'].textContent = "";
+    else if( selected_count === 1 )
+      chooser.nodes['dialog-footer-status-message'].textContent = `1 ${Messages.PACKAGE_SELECTED_SINGLE}`;
+    else
+      chooser.nodes['dialog-footer-status-message'].textContent = `${selected_count} ${Messages.PACKAGE_SELECTED_PLURAL}`;
+
+
     // console.info( "index", n.index, "data", n.data );
   };
 
@@ -895,13 +976,9 @@ const showPackageChooserInternal = function(cran){
     node.data = data;
     node.index = index;
 
-    let s = data[0];
-    // let cb = node.querySelector( '.package-chooser-checkbox' );
     let name = node.querySelector( '.package-chooser-name' );
 
-    //cb.checked = data.installed || data.selected;
     if( data.installed ){
-      s += " (installed)";
       name.parentNode.classList.add( "disabled" );
     }
     else name.parentNode.classList.remove( "disabled" );
@@ -913,7 +990,7 @@ const showPackageChooserInternal = function(cran){
       name.parentNode.classList.remove("chooser-checkbox-checked");
     }
 
-    name.innerText = s;
+    name.innerText = data[0];
 
   };
 
@@ -927,7 +1004,7 @@ const showPackageChooserInternal = function(cran){
   `;
 
   chooser.show(click, {fixSize: true}).then( function( result ){
-    console.info( "Close dialog", result );
+    // console.info( "Close dialog", result );
     chooser.nodes['package-chooser-filter'].removeEventListener( "input", updateFilter );
     vlist.cleanup();
 
@@ -935,13 +1012,11 @@ const showPackageChooserInternal = function(cran){
       let list = [];
       for( let i = 0; i< data.length; i++ ){
         if( data[i].selected ){
-          console.info( data[i][0] );
           list.push( `"${data[i][0]}"` );
         }
       }
       if( list.length ){
         let cmd = `install.packages(c(${list.join(",")}))`;
-        console.info( cmd );
         PubSub.publish( "execute-block", cmd );
       }
     }
@@ -1005,6 +1080,7 @@ const showPackageChooserInternal = function(cran){
         let c = scmp( names[i][0], installed[j] );
         if( c === 0 ){
           data[names[i][1]].installed = true;
+          data[names[i][1]][0] += ` (${Messages.INSTALLED})`; // FIXME: messages
           i++, j++;
         }
         else if( c < 0 ) i++;

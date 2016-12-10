@@ -22,7 +22,7 @@
 
 "use strict";
 
-const {app, BrowserWindow} = require('electron')
+const {app, BrowserWindow, ipcMain} = require('electron')
 const windowStateKeeper = require('electron-window-state');
 
 let devtools = false;
@@ -85,4 +85,47 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+ipcMain.on('download', function(event, opts = {}){
+
+	let url = opts.url;
+	let dest = opts.destfile;
+	let listener = function(event, item, webContents){
+		
+		let totalBytes = item.getTotalBytes();
+		let filePath = dest || path.join(app.getPath('downloads'), item.getFilename());
+
+		// NOTE: this fails with unix-y paths.  R is building these paths incorrectly
+
+		if( process.platform === "win32" ){
+			filePath = filePath.replace( /\//g, "\\" );
+		}
+		item.setSavePath(filePath);
+
+		item.on('updated', () => {
+			win.setProgressBar(item.getReceivedBytes() / totalBytes);
+			webContents.send( 'download-progress', { received: item.getReceivedBytes(), total: totalBytes });
+		});
+
+		item.on('done', (e, state) => {
+
+			if (!win.isDestroyed()) {
+				win.setProgressBar(-1);
+			}
+
+			if (state === 'interrupted') {
+				// electron.dialog.showErrorBox('Download error', `The download of ${item.getFilename()} was interrupted`);
+			}
+
+			webContents.send( 'download-complete', { path: filePath, name: item.getFilename(), size: totalBytes, state: state });
+			webContents.session.removeListener('will-download', listener);
+			
+		});
+
+	};
+	
+	win.webContents.session.on( 'will-download', listener );
+	win.webContents.downloadURL(url);
+	
+});
 

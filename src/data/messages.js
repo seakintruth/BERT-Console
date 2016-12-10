@@ -40,7 +40,7 @@ module.exports = {
 
     ERROR: "ERROR",
     WARNING: "WARNING",
-
+    
     // dialog messages and buttons
 
     READING_FILE: "reading file $1",
@@ -57,6 +57,19 @@ module.exports = {
 
     OK: "OK",
     CANCEL: "Cancel",
+
+    // downloading 
+
+    TRYING_URL: "Trying URL",
+    DOWNLOADING: "Downloading",
+    DOWNLOAD_COMPLETE: "Download Complete",
+    DOWNLOAD_FAILED: "Download Failed",
+
+    // packages 
+
+    INSTALLED: "installed",
+    PACKAGE_SELECTED_SINGLE: "Package selected",
+    PACKAGE_SELECTED_PLURAL: "Packages selected",
 
   },
 
