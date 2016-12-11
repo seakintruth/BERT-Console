@@ -35,7 +35,7 @@ let backgroundCover = undefined;
 let dialogBase = undefined;
 let clickHandler = undefined;
 
-const Dialog = function(html){
+const Dialog = function(html, Messages){
 
   if( !backgroundCover ){
     backgroundCover = document.createElement( "div" );
@@ -54,9 +54,10 @@ const Dialog = function(html){
     })
   }
 
-  this.nodes = Utils.parseHTML( html, dialogBase, {} );
+  this.nodes = Utils.parseHTML( html, dialogBase, Messages || {} );
 
   this.hide = function(){
+    PubSub.publish( "enable-menu-bar", true );
     backgroundCover.style.display = "none";
     dialogBase.style.display = "none";
   };
@@ -69,6 +70,8 @@ const Dialog = function(html){
   };
 
   this.show = function( clickFunction, options ){
+
+    PubSub.publish( "enable-menu-bar", false );
 
     let instance = this;
     options = options || {};
@@ -94,6 +97,9 @@ const Dialog = function(html){
         switch(e.code){
         case "Escape":
           rslt = "Cancel";
+          break;
+        case "Enter":
+          rslt = "OK";
           break;
         default:
           return;

@@ -48,7 +48,8 @@ global.Settings = require( "./settings.js" ).createStore({
   name: "general", type: "file", key: settingsKey, watch: true, defaults: {
     layout: { vertical: false },
     shell: { functionTips: true },
-    developer: {}
+    developer: {},
+    cran: {}
   }});
 
 // layout settings are in localStorage instead of the settings file
@@ -78,6 +79,7 @@ const mirrorChooserTemplate = require( "../data/mirror-chooser.template.html" );
 const packageChooserTemplate = require( "../data/package-chooser.template.html" );
 
 // 4 hours for dev, 0 (session) for production
+//const CRAN_CACHE_TIME = 0 ; // session 
 const CRAN_CACHE_TIME = 60 * 60 * 4; 
 
 // globals
@@ -435,6 +437,38 @@ var about_dialog = function () {
   });
 };
 
+let menuEnabledStack = 0; 
+let menuCache;
+
+/**
+ * enable or disable menu bar (or as close as we can get on electron).
+ * disabled state stacks.
+ */
+PubSub.subscribe( "enable-menu-bar", function( channel, enable ){
+  
+  if( enable ){
+    if( menuEnabledStack === 0 ) return;
+    menuEnabledStack--;
+  }
+  else menuEnabledStack++;
+
+  let menu = Menu.getApplicationMenu();
+  if( menuEnabledStack === 0 ){
+    Menu.setApplicationMenu(menuCache);
+  }
+  else if( menuEnabledStack === 1 ){
+    menuCache = Menu.getApplicationMenu();
+    let menu2 = new Menu();
+    menu.items.forEach( function( item, index ){
+      menu2.insert( index, new MenuItem({ label: item.label, enabled: false }));
+    });
+    Menu.setApplicationMenu(menu2);
+  }
+
+  window.Menu = Menu;
+
+});
+
 PubSub.subscribe( "menu-click", function( channel, opts ){
 
   // opts: { id, template, item, focusedWindow }
@@ -599,8 +633,11 @@ let updateLayout = function( dir, reset ){
 PubSub.subscribe( "settings-error", function( channel, args ){
 
   let msg = Messages.INVALID_SETTINGS_FILE;
-  if( args.exception ) msg = msg + ": " + args.exception.message;
-
+  if( args.exception ){
+    msg = msg + ": " + args.exception.message;
+    console.error( args.exception );
+  }
+  
   Notifier.notify({
     title: Messages.WARNING,
     className: "warning",
@@ -771,7 +808,7 @@ const showMirrorChooser = function(){
     let vlist, cran = undefined;
     let df = Cache.get( "mirror-list" );
 
-    let chooser = new HTMLDialog(mirrorChooserTemplate);
+    let chooser = new HTMLDialog(mirrorChooserTemplate, Messages);
     chooser.nodes['mirror-chooser-wait'].style.display = "block";
     chooser.nodes['mirror-chooser-list'].style.display = "none";
 
@@ -794,8 +831,15 @@ const showMirrorChooser = function(){
     // FIXME: don't allow OK without a selection
 
     chooser.show( click, { fixSize: true }).then( function( result ){
+      vlist.cleanup();
       if( result === "OK" ){
-        vlist.cleanup();
+
+        // for whatever reason, setting this as a string was breaking 
+        // settings (without an obvious error).  we need to figure out what
+        // that was, but for now encoding is a workaround.
+
+        Settings.cran.mirror = btoa(cran);
+
         let cmd = `local({r <- getOption("repos"); r["CRAN"] <- "${cran}"; options(repos=r)})`;
         R.internal(['exec', cmd ]).then( function(){
           resolve(cran);
@@ -880,7 +924,14 @@ const showPackageChooser = function(){
   R.internal([ "exec", "getOption('repos')['CRAN']" ]).then( function( repo ){
     if( repo.type === "response" && repo.response.$data.value.CRAN ){
       let cran = repo.response.$data.value.CRAN;
-      if( cran.match( /^http/i )) return Promise.resolve( cran );
+      if( !cran.match( /^http/i )){
+
+        // see note where this is set
+        cran = Settings.cran.mirror;
+        if( cran ) cran = atob(cran);
+
+      }
+      if(cran && cran.match( /^http/i )) return Promise.resolve( cran );
     } 
     return showMirrorChooser();
   }).then( function(cran){
@@ -902,7 +953,7 @@ const showPackageChooserInternal = function(cran){
 
   let vlist;
   let currentFilter = "";
-  let chooser = new HTMLDialog(packageChooserTemplate);
+  let chooser = new HTMLDialog(packageChooserTemplate, Messages);
   let cacheKey = "package-list-" + cran;
   let data = Cache.get( cacheKey );
   let filtered;

@@ -71,6 +71,15 @@ module.exports = {
     PACKAGE_SELECTED_SINGLE: "Package selected",
     PACKAGE_SELECTED_PLURAL: "Packages selected",
 
+    FILTER: "Filter...",
+    LOADING_PACKAGE_LIST: "Loading package list, please wait...",
+    AVAILABLE_PACKAGES: "Available Packages",
+
+    // mirrors
+
+    SELECT_MIRROR: "Select a CRAN Mirror",
+    LOADING_MIRROR_LIST: "Loading mirror list, please wait...",
+
   },
 
   Editor: {

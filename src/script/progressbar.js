@@ -43,6 +43,11 @@ const ProgressBarManager = function(){
       // insert node
       let div = document.createElement( "div" );
       div.className = "shell-progress-bar";
+
+      let wtype = typeof obj.width;
+      if( wtype === "number" ) div.style.width = obj.width + "em";
+      else if( wtype === "string" ) div.style.width = obj.width;
+
       let val = ( typeof obj.value === "undefined" ) ? obj.initial : obj.value;
       let pct = Math.max( 0, Math.min( Math.round( 100 * ( val - obj.min ) / ( obj.max - obj.min )), 100 ));
 

@@ -47,7 +47,27 @@
   padding: .7em 1em;
   text-align: left;
   border-bottom: 1px solid #ccc;
-  font-size: 1.2em;
+  font-size: 18px;
+
+  font-weight: 300;
+  background: #aaa;
+  border-color: #aaa;
+  color: #fff;
+   border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  border-bottom: 1px solid #aaa;
+}
+
+.dialog-footer {
+  padding: .7em 1em;
+  border-top: 1px solid #ccc;
+
+  background: #aaa;
+  border-color: #aaa;
+  color: #fff;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  border-top: 1px solid #aaa;
 }
 
 .dialog-footer-align-right {
@@ -81,18 +101,15 @@
   text-align: right;
 }
 
-.dialog-footer {
-  padding: .7em 1em;
-  border-top: 1px solid #ccc;
-}
 
 .dialog-button {
-  border: 1px solid #ccc;
+  border: 1px solid #888;
   background: #fff;
-  border-radius: 2px;
+  border-radius: 3px;
   min-width: 6em;
   min-height: 2em;
   margin: .2em;
+  font-family: inherit;
 }
 
 .dialog-button:hover {

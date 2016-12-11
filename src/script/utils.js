@@ -50,6 +50,10 @@ Utils.parseHTML = function( content, target, messages ){
             children[i].setAttribute( attr, messages[msg] );
           }
         });
+        if( children[i].hasAttribute( "data-textcontent-message" )){
+            let msg = children[i].getAttribute( "data-textcontent-message" );
+            children[i].textContent = messages[msg] ;
+        }
       }
       search( children[i], map );
     }

@@ -52,6 +52,9 @@ body {
 	font-size: 11px;
 }
 
+.CodeMirror-linewidget {
+  overflow-x: hidden;
+}
 
 /* --- function tips ---------------------------------------------------- */
 
@@ -157,7 +160,7 @@ body {
 }
 
 .package-chooser-entry .chooser-checkbox.disabled {
-  color: #999;
+  color: #666;
 }
 
 .package-chooser-entry .chooser-checkbox.disabled::before {
