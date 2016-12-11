@@ -72,6 +72,7 @@ const ProgressBarManager = function(){
         let pct = Math.max( 0, Math.min( Math.round( 100 * ( obj.value - obj.min ) / ( obj.max - obj.min )), 100 ));
         let label = pct + "%";
         if( typeof obj.label === "function" ) label = obj.label(pct);
+        else if( typeof obj.label === "string" ) label = obj.label;
 
         pbmap[obj.key].__node.querySelector( ".shell-progress-bar-fill" ).style.width = `${pct}%`;
         pbmap[obj.key].__node.querySelector( ".shell-progress-bar-label" ).textContent = label;

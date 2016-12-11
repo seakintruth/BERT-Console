@@ -928,8 +928,15 @@ const showPackageChooser = function(){
 
         // see note where this is set
         cran = Settings.cran.mirror;
-        if( cran ) cran = atob(cran);
-
+        if( cran ){
+          cran = atob(cran);
+          let cmd = `local({r <- getOption("repos"); r["CRAN"] <- "${cran}"; options(repos=r)})`;
+          R.internal(['exec', cmd ]).then( function(){
+            return resolve(cran);
+          }).catch( function(e){
+            return reject(e);
+          });
+        }
       }
       if(cran && cran.match( /^http/i )) return Promise.resolve( cran );
     } 
