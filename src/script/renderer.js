@@ -139,6 +139,21 @@ R.on( "pipe-closed", function(){
   remote.getCurrentWindow().close();
 });
 
+R.on( "state-change", function(s){
+  if( !global.spinner_cache ) return;
+  if( s ){
+    global.spinner_cache.event = setTimeout( function(){
+      global.spinner_cache.event = undefined;
+      global.spinner_cache.overlay.style.opacity=1;
+    }, 350 );
+  }
+  else {
+    if( global.spinner_cache.event ) clearTimeout( global.spinner_cache.event );
+    global.spinner_cache.event = undefined;
+      global.spinner_cache.overlay.style.opacity=0;
+  }
+});
+
 ////////////////////////////
 
 
@@ -253,6 +268,7 @@ PubSub.subscribe( "settings-change", function( channel, update ){
     if( !Settings.shell.hide ) shell.refresh();
     updateFocusMessage();
     resizeShell(true);
+    update_spinner();
     break;
 
   case "editor.hide":
@@ -260,6 +276,7 @@ PubSub.subscribe( "settings-change", function( channel, update ){
     if( !Settings.editor.hide ) editor.refresh();
     updateFocusMessage();
     resizeShell(true);
+    update_spinner();
     break;  
 
   case "layout.vertical":
@@ -270,6 +287,7 @@ PubSub.subscribe( "settings-change", function( channel, update ){
 
   case "shell.resize":
     if( Settings.shell.resize ) resizeShell();
+    update_spinner();
     break;
 
   case "developer.allowReloading":
@@ -306,6 +324,7 @@ PubSub.subscribe( "window-resize", function( channel ){
   resizeShell();
   shell.refresh();
   editor.refresh();
+  update_spinner();
 });
 
 PubSub.subscribe( "splitter-resize", function( channel, splitter ){
@@ -315,6 +334,7 @@ PubSub.subscribe( "splitter-resize", function( channel, splitter ){
   resizeShell();
   shell.refresh();
   editor.refresh();
+  update_spinner();
 });
 
 window.addEventListener( "keydown", function(e){
@@ -510,6 +530,7 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     break;
   case "shell-clear-shell":
     shell.clear();
+    update_spinner();
     break;
 
   case "r-packages-choose-mirror":
@@ -537,6 +558,59 @@ let updateUserStylesheet = function(){
   Utils.ensureCSS( USER_STYLESHEET_PATH, 
     { 'data-position': 'last', 'data-id': 'user-stylesheet' }, 
     document.head );
+
+};
+
+const update_spinner = function () {
+
+  // cache nodes
+  if (!global.spinner_cache) {
+    global.spinner_cache = {
+      v: document.querySelector(".CodeMirror-vscrollbar"),
+      h: document.querySelector(".CodeMirror-hscrollbar"),
+      overlay: document.querySelector(".overlay-bottom-right"),
+      offset_y_installed: true // for side-effect
+    };
+  }
+
+  const adjust_v = function () {
+
+    // we call this here in the event that the function fires twice before 
+    // removing the listner; e.g. you clear the console before it ever starts
+    // scrolling.  it has no effect if we haven't added yet.
+    spinner_cache.v.removeEventListener("scroll", adjust_v);
+
+    if (spinner_cache.v.clientWidth) {
+      spinner_cache.overlay.classList.add("scrollbar-offset-x");
+    }
+    else {
+      spinner_cache.overlay.classList.remove("scrollbar-offset-x");
+      spinner_cache.v.addEventListener("scroll", adjust_v);
+    }
+  };
+
+  const adjust_h = function () {
+
+    let token = 0;
+
+    if (spinner_cache.h.clientWidth) {
+      spinner_cache.overlay.classList.add("scrollbar-offset-y");
+      spinner_cache.offset_y_installed = true;
+      if (token) PubSub.unsubscribe(token);
+      token = 0;
+    }
+    else {
+      if (spinner_cache.offset_y_installed) {
+        spinner_cache.overlay.classList.remove("scrollbar-offset-y");
+        spinner_cache.offset_y_installed = false;
+        token = PubSub.subscribe('viewport-change', adjust_h);
+      }
+    }
+
+  };
+
+  adjust_v();
+  adjust_h();
 
 };
 
@@ -627,6 +701,7 @@ let updateLayout = function( dir, reset ){
   shell.refresh();
   editor.refresh();
   resizeShell();
+  update_spinner();
 
 };
 
@@ -689,7 +764,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
   if( Settings.shell.hide ) splitWindow.setVisible( 1, false );
 
   let shellContainer = splitWindow.panes[1];
-  
   shellContainer.classList.add( "shell" );
 
    // shell
@@ -707,6 +781,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
       PubSub.publish("viewport-change");
     }
   });
+
+  
+  let overlayNode = document.createElement( "div" );
+  overlayNode.className = "overlay-bottom-right";
+  shellContainer.querySelector( ".CodeMirror").appendChild( overlayNode ); 
 
   shell.setOption( "lineWrapping", !!Settings.shell.wrap );
 
@@ -792,6 +871,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   });
 
   ProgressBarManager.init(shell);
+  update_spinner();
 
   // setTimeout( function(){ showPackageChooser() }, 1 );
 
@@ -932,9 +1012,9 @@ const showPackageChooser = function(){
           cran = atob(cran);
           let cmd = `local({r <- getOption("repos"); r["CRAN"] <- "${cran}"; options(repos=r)})`;
           R.internal(['exec', cmd ]).then( function(){
-            return resolve(cran);
+            return Promise.resolve(cran);
           }).catch( function(e){
-            return reject(e);
+            return Promise.reject(e);
           });
         }
       }
