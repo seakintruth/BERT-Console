@@ -304,6 +304,7 @@ const PipeR = function () {
       if (busy) reject("busy");
       else {
         busy = true;
+
         instance.emit('state-change', busy);
         notify = function (response) {
 

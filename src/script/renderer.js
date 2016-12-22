@@ -79,8 +79,8 @@ const mirrorChooserTemplate = require( "../data/mirror-chooser.template.html" );
 const packageChooserTemplate = require( "../data/package-chooser.template.html" );
 
 // 4 hours for dev, 0 (session) for production
-//const CRAN_CACHE_TIME = 0 ; // session 
-const CRAN_CACHE_TIME = 60 * 60 * 4; 
+const CRAN_CACHE_TIME = 0 ; // session 
+//const CRAN_CACHE_TIME = 60 * 60 * 4; 
 
 // globals
 let splitWindow;
@@ -140,8 +140,10 @@ R.on( "pipe-closed", function(){
 });
 
 R.on( "state-change", function(s){
+
   if( !global.spinner_cache ) return;
   if( s ){
+    if( global.spinner_cache.event ) clearTimeout( global.spinner_cache.event );
     global.spinner_cache.event = setTimeout( function(){
       global.spinner_cache.event = undefined;
       global.spinner_cache.overlay.style.opacity=1;
@@ -150,7 +152,7 @@ R.on( "state-change", function(s){
   else {
     if( global.spinner_cache.event ) clearTimeout( global.spinner_cache.event );
     global.spinner_cache.event = undefined;
-      global.spinner_cache.overlay.style.opacity=0;
+    global.spinner_cache.overlay.style.opacity=0;
   }
 });
 
@@ -516,6 +518,9 @@ PubSub.subscribe( "menu-click", function( channel, opts ){
     break;
   case "help-feedback":
     window.require('electron').shell.openExternal('https://bert-toolkit.com/contact');
+    break;
+  case "help-issues":
+    window.require('electron').shell.openExternal('https://github.com/sdllc/Basic-Excel-R-Toolkit/issues');
     break;
 
   case "reload": 
@@ -1027,7 +1032,7 @@ const showPackageChooser = function(){
     }
   });
 
-}
+};
 
 /**
  * if we have a good CRAN repo, start the package chooser.
