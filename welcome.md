@@ -4,7 +4,7 @@ and a basic editor for editing your function or script files.
 
 A couple of key things to know:
 
- * BERT loads functions from files in `My Documents\BERT\functions`
+ * BERT loads functions from files in `Documents\BERT\functions`
    (we call this the startup folder). When you install, there's
    one file in there: `functions.R`. To add new functions to Excel,
    either edit that file or add a new file to the startup folder.
