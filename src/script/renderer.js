@@ -33,7 +33,8 @@ const {Menu, MenuItem, dialog} = remote;
 const PubSub = require( "pubsub-js" );
 const fs = require( "fs" );
 const path = require( "path" );
-const chokidar = window.require('chokidar');
+//const chokidar = window.require('chokidar');
+const chokidar = require('chokidar');
 const Shell = require( "cmjs-shell" );
 
 // initialize the global settings store.  this is file-based.  put it in 
@@ -748,7 +749,8 @@ PubSub.subscribe( "file-write-error", function( channel, args ){
 });
 
 // on load, set up document
-document.addEventListener("DOMContentLoaded", function(event) {
+//document.addEventListener("DOMContentLoaded", function(event) {
+global.initialize = function(){
 
   // webpack inserts css as style blocks, so we need to ensure that this is last.  
   updateUserStylesheet();
@@ -880,7 +882,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   // setTimeout( function(){ showPackageChooser() }, 1 );
 
-});
+};
 
 const showMirrorChooser = function(){
 
@@ -1240,3 +1242,4 @@ const showPackageChooserInternal = function(cran){
 
 };
 
+initialize();

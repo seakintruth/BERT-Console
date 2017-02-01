@@ -1,6 +1,7 @@
 
-# if you want to build production, set this explicitly
-# export NODE_ENV=production
+# we now always set this; to build debug run directly.
+
+export NODE_ENV=production
 
 # clean
 rm -fr build/*
@@ -8,11 +9,11 @@ rm -fr bert-shell-win32-ia32
 rm -fr bert-shell-win32-x64
 
 # build
-webpack -p
+./node_modules/.bin/webpack -p
 
 # install node modules.  note this is always production.
 cd build
-npm install --production
+yarn install --production
 
 # now package
 cd ..

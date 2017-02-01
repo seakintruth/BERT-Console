@@ -25,10 +25,18 @@
 const {app, BrowserWindow, ipcMain} = require('electron')
 const windowStateKeeper = require('electron-window-state');
 
+// flag opens devtools automatically, useful for debug
 let devtools = false;
+
+// set this flag when using dev-server; this runs the app 
+// from http instead of the filesystem, supporting reload
+let devserver = false;
+
 process.argv.forEach( function( arg ){
   if( arg === "--devtools" ) devtools = true;
+  else if( arg === "--devserver" ) devserver = true;
 })
+
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -52,9 +60,8 @@ function createWindow () {
 
   if( devtools ) win.webContents.openDevTools()
 
-  // and load the index.html of the app.
-  win.loadURL(`file://${__dirname}/index.html`)
-
+  win.loadURL(`file://${__dirname}/index.html${ devserver ? "?devserver=1" : "" }`);
+  
   // Emitted when the window is closed.
   win.on('closed', () => {
     // Dereference the window object, usually you would store windows

@@ -30,7 +30,8 @@
 const fs = require( "fs" );
 const path = require( "path" );
 const PubSub = require( "pubsub-js" );
-const chokidar = window.require('chokidar');
+//const chokidar = window.require('chokidar');
+const chokidar = require('chokidar');
 const Utils = require( "./utils.js" );
 
 // === storage bases ==========================================================
