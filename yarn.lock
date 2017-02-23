@@ -3561,16 +3561,7 @@ typedarray@~0.0.5:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
-uglify-js@2.7.x, uglify-js@^2.7.5:
-  version "2.7.5"
-  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-2.7.5.tgz#4612c0c7baaee2ba7c487de4904ae122079f2ca8"
-  dependencies:
-    async "~0.2.6"
-    source-map "~0.5.1"
-    uglify-to-browserify "~1.0.0"
-    yargs "~3.10.0"
-
-"uglify-js@git://github.com/mishoo/UglifyJS2.git#harmony":
+uglify-js@2.7.x, uglify-js@^2.7.5, "uglify-js@git://github.com/mishoo/UglifyJS2.git#harmony":
   version "2.7.5"
   resolved "git://github.com/mishoo/UglifyJS2.git#4bd31607f665499543bbc83192225203ae6763d1"
   dependencies:
@@ -3748,7 +3739,7 @@ webpack-sources@^0.1.4:
     source-list-map "~0.1.7"
     source-map "~0.5.3"
 
-webpack@^2.2.0:
+webpack@^2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/webpack/-/webpack-2.2.1.tgz#7bb1d72ae2087dd1a4af526afec15eed17dda475"
   dependencies:

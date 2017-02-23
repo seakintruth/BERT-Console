@@ -18,21 +18,21 @@
     "electron-window-state": "^3.0.4"
   },
   "devDependencies": {
+    "bower": "^1.7.9",
     "chokidar": "^1.6.0",
     "cmjs-shell": "^0.3.8",
-    "pubsub-js": "^1.5.3",
-    "bower": "^1.7.9",
     "copy-webpack-plugin": "^3.0.1",
     "css-loader": "^0.25.0",
     "electron-packager": "^8.0.0",
     "html-loader": "^0.4.4",
     "html-webpack-plugin": "^2.22.0",
     "json-loader": "^0.5.4",
+    "pubsub-js": "^1.5.3",
     "raw-loader": "^0.5.1",
     "style-loader": "^0.13.1",
     "uglify-js": "git://github.com/mishoo/UglifyJS2.git#harmony",
     "uglifyjs-webpack-plugin": "^0.1.2",
-    "webpack": "^2.2.0",
+    "webpack": "^2.2.1",
     "webpack-dev-server": "^2.2.0"
   }
 }
