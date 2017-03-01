@@ -165,7 +165,7 @@ let Utils = {
       else {
         target[key] = elt;
       }
-    });
+    }, this);
 
   },
 
@@ -242,7 +242,7 @@ let Utils = {
       else {
         if( template.setting ){
           template.click = function(item){
-            this.dereference_set( Settings, template.setting, template.invert ? !item.checked : item.checked );
+            Utils.dereference_set( Settings, template.setting, template.invert ? !item.checked : item.checked );
           }
         }
         else if( template.id ){
