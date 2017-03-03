@@ -26,6 +26,9 @@ module.exports = {
     filename: "[name].js",
     path: path.resolve("./build")
   },
+  devServer: {
+    port: 8064
+  }, 
   module: {
     loaders: [
       { test: /\.html$/, loader: 'html-loader?interpolate' },

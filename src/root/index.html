@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   let path = "bundle.js";
   if( document.location.search && document.location.search.match( /devserver=1/ )){
     global.allowReload = true;
-    path = "http://localhost:8080/bundle.js";  
+    path = "http://localhost:8064/bundle.js";  
   }
   let elt = document.createElement("script");
   elt.src = path;
