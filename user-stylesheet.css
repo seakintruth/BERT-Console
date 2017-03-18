@@ -8,7 +8,6 @@
  */
 
 /** use a web font in the shell: */
-
 /*
 @import 'https://fonts.googleapis.com/css?family=Fira+Mono:400,700';
 
@@ -35,4 +34,10 @@
 .split-pane:nth-child(2) { order: 0; }
 .splitter { order: 1; }
 .split-pane:first-child { order: 2; }
+*/
+
+/*
+.shell-progress-bar-label { color: #333; }
+.shell-progress-bar { background: #eee; }
+.shell-progress-bar-fill { background: #ddd; }
 */
