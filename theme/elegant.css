@@ -11,3 +11,9 @@
 
 .cm-s-elegant .CodeMirror-activeline-background { background: #e8f2ff; }
 .cm-s-elegant .CodeMirror-matchingbracket { outline:1px solid #ccc; background: #eee; color:black !important; }
+
+/* progress bars */
+
+.shell-progress-bar-label { color: #555; }
+.shell-progress-bar { background: #eee; }
+.shell-progress-bar-fill { background: #ddd; }

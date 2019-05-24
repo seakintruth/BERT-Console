@@ -24,7 +24,8 @@
 
 require( "../style/editor.css" );
 
-const chokidar = window.require('chokidar');
+//const chokidar = window.require('chokidar');
+const chokidar = require('chokidar');
 
 // some default settings in the global settings object
 

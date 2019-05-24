@@ -33,7 +33,8 @@ const {Menu, MenuItem, dialog} = remote;
 const PubSub = require( "pubsub-js" );
 const fs = require( "fs" );
 const path = require( "path" );
-const chokidar = window.require('chokidar');
+//const chokidar = window.require('chokidar');
+const chokidar = require('chokidar');
 const Shell = require( "cmjs-shell" );
 
 // initialize the global settings store.  this is file-based.  put it in 
@@ -77,6 +78,8 @@ const MenuTemplates = Utils.getLocaleResource( "menus.js", require( "../data/men
 
 const mirrorChooserTemplate = require( "../data/mirror-chooser.template.html" );
 const packageChooserTemplate = require( "../data/package-chooser.template.html" );
+
+const PackageSpec = require( "../../package.json" );
 
 // 4 hours for dev, 0 (session) for production
 const CRAN_CACHE_TIME = 0 ; // session 
@@ -433,6 +436,7 @@ const exec_function = function( lines, callback ){
 
 };
 
+/*
 const versions = {};
 function check_version(dir) {
   fs.readFile(path.join(dir, "package.json"), { encoding: "utf8" }, (err, data) => {
@@ -444,7 +448,9 @@ function check_version(dir) {
     }
   });
 };
-check_version(__dirname);
+versions.BERTConsole = PackageSpec.version;
+window.versions = versions;
+*/
 
 var about_dialog = function () {
   dialog.showMessageBox(remote.getCurrentWindow(), {
@@ -625,6 +631,10 @@ let updateMenu = function(){
 
   Utils.updateSettings( Settings, template );  
 
+  // set version 
+  node = Utils.findNode( "bert-shell-version", template );
+  if( node ) node.label = `BERT Console ${PackageSpec.version}`;
+
   // set enabled for reload
   node = Utils.findNode( "reload", template );
   if( node ) node.enabled = Settings.developer.allowReloading;
@@ -747,8 +757,9 @@ PubSub.subscribe( "file-write-error", function( channel, args ){
   });
 });
 
-// on load, set up document
-document.addEventListener("DOMContentLoaded", function(event) {
+const initialize = function(){
+
+console.info(12);
 
   // webpack inserts css as style blocks, so we need to ensure that this is last.  
   updateUserStylesheet();
@@ -880,7 +891,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
   // setTimeout( function(){ showPackageChooser() }, 1 );
 
-});
+};
 
 const showMirrorChooser = function(){
 
@@ -1239,4 +1250,9 @@ const showPackageChooserInternal = function(cran){
   });
 
 };
+
+// we're now loading this script post-DOM complete, so (1) we can initialize 
+// immediately, and (2) if we do wait for that event we'll never receive it.
+
+initialize();
 

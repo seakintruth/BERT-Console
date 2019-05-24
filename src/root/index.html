@@ -11,6 +11,7 @@
   </head>
 
   <body>
+
     <script src="codemirror/lib/codemirror.js"></script>
 
     <script src="codemirror/mode/r/r.js"></script>
@@ -28,17 +29,18 @@
     <script src="codemirror/addon/search/match-highlighter.js"></script>
     <script src="codemirror/addon/search/matchesonscrollbar.js"></script>
 
-    <!-- gating based on the NODE_ENV env var -->
-
-    ${ process.env.NODE_ENV === "production" ? `
-    <script src="bundle.js"></script> 
-    ` : `
-    <script src="http://localhost:8080/webpack-dev-server.js"></script>
-    <script src="http://localhost:8080/built/bundle.js"></script>
     <script>
-      global.allowReload = true;
-    </script> 
-    ` }
+document.addEventListener("DOMContentLoaded", function(event) {
+  let path = "bundle.js";
+  if( document.location.search && document.location.search.match( /devserver=1/ )){
+    global.allowReload = true;
+    path = "http://localhost:8064/bundle.js";  
+  }
+  let elt = document.createElement("script");
+  elt.src = path;
+  document.body.appendChild( elt );
+});
+    </script>
 
   </body>
 
